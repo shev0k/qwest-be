@@ -1,6 +1,6 @@
 package com.qwest.backend.service.impl;
 
-import com.qwest.backend.domain.User;
+import com.qwest.backend.domain.user.User;
 import com.qwest.backend.repository.UserRepository;
 import com.qwest.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,11 +35,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User updateUser(Long id, User user) {
-        // Ensure the user exists and then update
         return userRepository.findById(id)
                 .map(existingUser -> {
-                    existingUser.setName(user.getName());
+                    existingUser.setUsername(user.getUsername());
                     existingUser.setEmail(user.getEmail());
+                    existingUser.setPassword(user.getPassword());
+                    existingUser.setProfileImage(user.getProfileImage());
+                    existingUser.setPreferences(user.getPreferences());
+                    existingUser.setRoles(user.getRoles());
                     return userRepository.save(existingUser);
                 }).orElseThrow(() -> new RuntimeException("User not found"));
     }

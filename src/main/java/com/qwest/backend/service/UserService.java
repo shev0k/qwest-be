@@ -1,6 +1,6 @@
 package com.qwest.backend.service;
 
-import com.qwest.backend.domain.User;
+import com.qwest.backend.domain.user.User;
 import java.util.List;
 import java.util.Optional;
 
