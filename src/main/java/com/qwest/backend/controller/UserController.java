@@ -1,6 +1,6 @@
 package com.qwest.backend.controller;
 
-import com.qwest.backend.domain.User;
+import com.qwest.backend.domain.user.User;
 import com.qwest.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
