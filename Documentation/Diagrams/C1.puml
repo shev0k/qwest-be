@@ -1,0 +1,20 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Context.puml
+
+title System Context Diagram for QWEST
+
+Person(user, "Traveler", "A user looking for personalized travel planning.")
+Person(travelConsultant, "Travel Consultant", "Admin role; manages content and user interactions.")
+Person(contentCreator, "Content Creator", "Contributes travel guides and itineraries.")
+
+System(qwest, "QWEST Platform", "Facilitates personalized travel itineraries.")
+System_Ext(travelAPIs, "Travel APIs", "External APIs for flights, hotels, and experiences.")
+System_Ext(userFeedback, "User Feedback System", "Enables users to rate and review itineraries.")
+
+Rel(user, qwest, "Uses")
+Rel(travelConsultant, qwest, "Manages")
+Rel(contentCreator, qwest, "Contributes to")
+Rel(qwest, travelAPIs, "Integrates with")
+Rel(qwest, userFeedback, "Collects feedback from")
+
+@enduml

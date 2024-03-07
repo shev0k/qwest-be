@@ -1,0 +1,25 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Container.puml
+
+title Container Diagram for QWEST
+
+Person(user, "Traveler", "Engages with the web application for planning trips")
+Person(travelConsultant, "Travel Consultant", "Manages platform data and interactions")
+Person(contentCreator, "Content Creator", "Contributes content to the platform")
+
+System_Boundary(qwest, "QWEST Platform") {
+    Container(webApp, "React Frontend", "React", "Enables users to explore and customize travel itineraries")
+    Container(springApp, "Spring Boot Backend", "Java Spring Boot", "Handles business logic, user management, and external API integration")
+    ContainerDb(database, "MySQL Database", "Stores user data, itineraries, and content")
+
+    Rel(user, webApp, "Uses")
+    Rel(travelConsultant, springApp, "Manages")
+    Rel(contentCreator, springApp, "Contributes through")
+    Rel(webApp, springApp, "API Calls")
+    Rel(springApp, database, "Reads from/Writes to")
+}
+
+System_Ext(travelAPIs, "Travel APIs", "Integrates with for real-time data")
+Rel(springApp, travelAPIs, "Fetches data from")
+
+@enduml
