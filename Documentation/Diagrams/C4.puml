@@ -1,0 +1,52 @@
+@startuml
+
+top to bottom direction
+skinparam linetype ortho
+
+interface UserService {
+    +saveUser(User): User
+    +getUserById(Long): Optional<User>
+    +getAllUsers(): List<User>
+    +updateUser(Long, User): User
+    +deleteUser(Long): void
+}
+
+class UserServiceImpl {
+    -userRepository: UserRepository
+    +UserServiceImpl(UserRepository)
+    +saveUser(User): User
+    +getUserById(Long): Optional<User>
+    +getAllUsers(): List<User>
+    +updateUser(Long, User): User
+    +deleteUser(Long): void
+}
+
+interface UserRepository {
+    +save(User): User
+    +findById(Long): Optional<User>
+    +findAll(): List<User>
+    +deleteById(Long): void
+}
+
+class User {
+    -id: Long
+    -username: String
+    -email: String
+    -password: String
+    -profileImage: String
+    -joinDate: Date
+    -lastLogin: Date
+    -roles: List<Role>
+    -preferences: String
+    -itineraries: List<Itinerary>
+    -reviews: List<Review>
+    +User()
+    +User(String, String, String)
+    +User(String, String, String, String, List<Role>, String)
+}
+
+UserServiceImpl -up-|> UserService : implements
+UserServiceImpl -right-> UserRepository : uses
+User "1" -left- "*" UserRepository : stores
+
+@enduml

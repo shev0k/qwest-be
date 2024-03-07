@@ -1,0 +1,24 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+title Component Diagram for QWEST
+
+Container_Boundary(api, "Spring Boot Backend") {
+    Component(userController, "User Controller", "Java Spring Rest Controller", "Manages user registration, profile updates, and authentication")
+    Component(itineraryController, "Itinerary Controller", "Java Spring Rest Controller", "Allows users to create, update, and view itineraries")
+    Component(reviewController, "Review Controller", "Java Spring Rest Controller", "Enables users to post and read reviews on itineraries")
+
+    Component(userService, "User Service", "Java Spring Service", "Implements business logic related to user accounts")
+    Component(itineraryService, "Itinerary Service", "Java Spring Service", "Implements business logic for itinerary management")
+    Component(reviewService, "Review Service", "Java Spring Service", "Implements business logic for managing itinerary reviews")
+
+    Component(userRepo, "User Repository", "JPA Repository", "Interfaces with the database for user data persistence")
+
+    Rel(userController, userService, "Uses")
+    Rel(itineraryController, itineraryService, "Uses")
+    Rel(reviewController, reviewService, "Uses")
+
+    Rel(userService, userRepo, "Interacts with")
+}
+
+@enduml
