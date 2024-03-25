@@ -41,8 +41,6 @@ public class UserServiceImpl implements UserService {
                     existingUser.setEmail(user.getEmail());
                     existingUser.setPassword(user.getPassword());
                     existingUser.setProfileImage(user.getProfileImage());
-                    existingUser.setPreferences(user.getPreferences());
-                    existingUser.setRoles(user.getRoles());
                     return userRepository.save(existingUser);
                 }).orElseThrow(() -> new RuntimeException("User not found"));
     }

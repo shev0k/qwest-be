@@ -1,6 +1,5 @@
 package com.qwest.backend.service;
 
-import com.qwest.backend.domain.user.Role;
 import com.qwest.backend.domain.user.User;
 import com.qwest.backend.repository.UserRepository;
 import com.qwest.backend.service.impl.UserServiceImpl;
@@ -31,7 +30,7 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        user = new User("John Doe", "john.doe@example.com", "password123", "image.jpg", Arrays.asList(Role.TRAVELER), "No Preferences");
+        user = new User("John Doe", "john.doe@example.com", "password123", "image.jpg");
         user.setId(1L);
     }
 
