@@ -36,7 +36,19 @@ dependencies {
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.4.2.Final'
 	implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.0.3'
 	implementation 'com.mysql:mysql-connector-j:8.3.0'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 }
+
+// Ensure bootJar and run tasks use DevTools
+bootJar {
+	classpath configurations.developmentOnly
+	launchScript()
+}
+
+tasks.named('bootRun') {
+	classpath += configurations.developmentOnly
+}
+
 
 tasks.named('test') {
 	useJUnitPlatform()
