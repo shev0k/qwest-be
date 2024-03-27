@@ -1,11 +1,16 @@
-FROM openjdk:17
+# Build stage
+FROM openjdk:17-jdk-slim AS build
+WORKDIR /workspace/app
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle .
+COPY settings.gradle .
+COPY src src
+RUN ./gradlew bootJar
 
-VOLUME /tmp
-
+# Package stage
+FROM openjdk:17-jre-slim
+WORKDIR /app
+COPY --from=build /workspace/app/build/libs/*.jar app.jar
 EXPOSE 8080
-
-ARG JAR_FILE=target/backend-0.0.1-SNAPSHOT.jar
-
-ADD ${JAR_FILE} app.jar
-
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
