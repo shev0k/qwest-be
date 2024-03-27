@@ -1,16 +1,9 @@
-# Build stage
-FROM openjdk:17-jdk-slim AS build
-WORKDIR /workspace/app
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle .
-COPY settings.gradle .
-COPY src src
-RUN ./gradlew bootJar
+FROM openjdk:17-jdk-slim
 
-# Package stage
-FROM openjdk:17-jre-slim
 WORKDIR /app
-COPY --from=build /workspace/app/build/libs/*.jar app.jar
+
+COPY build/libs/qwest-be-0.0.1-SNAPSHOT.jar /app/
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+ENTRYPOINT ["java", "-jar", "qwest-be-0.0.1-SNAPSHOT.jar"]
