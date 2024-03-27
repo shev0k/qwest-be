@@ -9,10 +9,9 @@ import org.springframework.web.context.request.WebRequest;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(value = Exception.class) // Catch all types of exceptions
+    @ExceptionHandler(value = Exception.class)
     public ResponseEntity<Object> handleAnyException(Exception ex, WebRequest request) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    // Specific exceptions can be added here
 }
