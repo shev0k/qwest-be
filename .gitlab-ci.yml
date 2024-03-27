@@ -1,6 +1,15 @@
-# Disable the Gradle daemon for Continuous Integration servers as correctness # is usually a priority over speed in CI environments. Using a fresh # runtime for each build is more reliable since the runtime is completely # isolated from any previous builds.
+# Disable the Gradle daemon for Continuous Integration servers as correctness
+# is usually a priority over speed in CI environments. Using a fresh
+# runtime for each build is more reliable since the runtime is completely
+# isolated from any previous builds.
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  # Add MySQL configuration variables here
+  MYSQL_DATABASE: "qwest_db"
+  MYSQL_ROOT_PASSWORD: "1234"
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/qwest_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+  SPRING_DATASOURCE_USERNAME: "root"
+  SPRING_DATASOURCE_PASSWORD: "1234"
 
 stages:
   - build
@@ -13,5 +22,8 @@ build:
 
 test:
   stage: test
+  services:
+    - name: mysql:5.7
+      alias: mysql
   script:
     - ./gradlew test
