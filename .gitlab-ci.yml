@@ -17,7 +17,6 @@ before_script:
 stages:
   - build
   - test
-  - docker
 
 build:
   stage: build
@@ -37,10 +36,3 @@ test:
     SPRING_PROFILES_ACTIVE: test
   script:
     - ./gradlew test
-
-docker:
-  stage: docker
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin https://git.fhict.nl
-    - docker build --pull -t $CI_REGISTRY_IMAGE/qwest-be .
-    - docker push $CI_REGISTRY_IMAGE/qwest-be
