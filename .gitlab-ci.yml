@@ -17,15 +17,18 @@ before_script:
 stages:
   - build
   - test
+  - deploy
 
 build:
   stage: build
   image: gradle:jdk17
   script:
+    - ls
+    - pwd
     - ./gradlew assemble
-  artifacts:
-    paths:
-      - build/libs/*.jar
+    - docker build -t qwest-be .
+
+
 test:
   stage: test
   image: gradle:jdk17
@@ -35,4 +38,15 @@ test:
   variables:
     SPRING_PROFILES_ACTIVE: test
   script:
+    - ls
+    - pwd
     - ./gradlew test
+
+deploy:
+  stage: deploy
+  script:
+    - ls
+    - pwd
+    - docker stop qwest-be-staging
+    - docker rm qwest-be-staging
+    - docker run -d -p 8090:8080 --net=qwest-staging-db --env spring_profiles_active=staging --name=qwest-be-staging qwest-be
