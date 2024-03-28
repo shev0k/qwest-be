@@ -1,4 +1,4 @@
-image: docker:19.03.12
+image: gradle:jdk17
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
@@ -7,10 +7,7 @@ variables:
   SPRING_DATASOURCE_URL: "jdbc:mysql://qwest-staging-db:3306/qwest_staging_db?useSSL=false&allowPublicKeyRetrieval=true"
   SPRING_DATASOURCE_USERNAME: "root"
   SPRING_DATASOURCE_PASSWORD: "1234"
-  IMAGE_NAME: "${CI_REGISTRY_IMAGE}/${CI_PROJECT_PATH,,}:${CI_COMMIT_REF_SLUG}"
-
-services:
-  - docker:19.03.12-dind
+  IMAGE_TAG: "${CI_REGISTRY_IMAGE}/${CI_PROJECT_PATH,,}:${CI_COMMIT_REF_SLUG}"
 
 before_script:
   - chmod +x ./gradlew
@@ -18,17 +15,16 @@ before_script:
 stages:
   - build
   - test
-  - docker
+  - docker_build
+  - docker_push
 
 build:
   stage: build
-  image: gradle:jdk17
   script:
     - ./gradlew assemble
 
 test:
   stage: test
-  image: gradle:jdk17
   services:
     - name: mysql:latest
       alias: qwest-staging-db
@@ -37,18 +33,20 @@ test:
   script:
     - ./gradlew test
 
-docker:
-  stage: docker
+docker_build:
+  stage: docker_build
+  image: docker:19.03.12
+  services:
+    - docker:19.03.12-dind
   script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-    - docker build --pull -t "$IMAGE_NAME" .
-    - docker push "$IMAGE_NAME"
-    - |
-      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-        docker tag "$IMAGE_NAME" "$CI_REGISTRY_IMAGE:latest"
-        docker push "$CI_REGISTRY_IMAGE:latest"
-      fi
-  rules:
-    - if: $CI_COMMIT_BRANCH
-      exists:
-        - Dockerfile
+    - docker build -t $IMAGE_TAG .
+
+docker_push:
+  stage: docker_push
+  image: docker:19.03.12
+  services:
+    - docker:19.03.12-dind
+  script:
+    - echo "Deploying image $IMAGE_TAG"
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push $IMAGE_TAG
