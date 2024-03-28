@@ -1,0 +1,27 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context Diagram for QWEST - Stays
+
+Person(user, "Traveler", "Seeks accommodations.")
+Person(travelConsultant, "Travel Consultant", "Curates content, manages interactions.")
+Person(listingCreator, "Listing Creator", "Provides accommodation listings.")
+
+System_Boundary(c1, "QWEST Platform") {
+    System(qwest, "QWEST", "Connects travelers with accommodations.")
+}
+
+System_Ext(travelAPIs, "Travel APIs", "Provides hotel booking options.")
+System_Ext(userFeedback, "Feedback System", "Gathers ratings and reviews on accommodations.")
+
+Rel(user, qwest, "Searches and books through")
+Rel(travelConsultant, qwest, "Curates and manages")
+Rel(listingCreator, qwest, "Lists accommodations on")
+Rel(qwest, travelAPIs, "Integrates with for booking")
+Rel(qwest, userFeedback, "Collects accommodation feedback")
+
+SHOW_LEGEND()
+
+@enduml

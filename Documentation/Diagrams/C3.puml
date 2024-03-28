@@ -1,0 +1,34 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+title Component Diagram for QWEST
+
+Container_Boundary(api, "Spring Boot Backend") {
+    Component(authorController, "Author Controller", "Java Spring Rest Controller", "Manages author profiles and their contributions.")
+    Component(amenityController, "Amenity Controller", "Java Spring Rest Controller", "Handles amenities listing and management.")
+    Component(stayListingController, "Stay Listing Controller", "Java Spring Rest Controller", "Manages stay listings.")
+
+    Component(authorService, "Author Service", "Java Spring Service", "Implements business logic for author profile management.")
+    Component(amenityService, "Amenity Service", "Java Spring Service", "Implements business logic for amenities management.")
+    Component(stayListingService, "Stay Listing Service", "Java Spring Service", "Implements business logic for stay listings management.")
+
+    Component(authorRepo, "Author Repository", "JPA Repository", "Interfaces with the database for author data persistence.")
+    Component(amenityRepo, "Amenity Repository", "JPA Repository", "Interfaces with the database for amenities data persistence.")
+    Component(stayListingRepo, "Stay Listing Repository", "JPA Repository", "Interfaces with the database for stay listings data persistence.")
+
+    ContainerDb(database, "MySQL Database", "SQL Database", "Stores all persistent data for the platform.")
+
+    Rel(authorController, authorService, "Uses")
+    Rel(amenityController, amenityService, "Uses")
+    Rel(stayListingController, stayListingService, "Uses")
+
+    Rel(authorService, authorRepo, "Interacts with")
+    Rel(amenityService, amenityRepo, "Interacts with")
+    Rel(stayListingService, stayListingRepo, "Interacts with")
+
+    Rel(authorRepo, database, "Reads from/Writes to")
+    Rel(amenityRepo, database, "Reads from/Writes to")
+    Rel(stayListingRepo, database, "Reads from/Writes to")
+}
+
+@enduml

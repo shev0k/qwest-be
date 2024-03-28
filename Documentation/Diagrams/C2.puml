@@ -1,0 +1,29 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram for QWEST - Enhanced Traveler Interactions
+
+Person(user, "Traveler", "Books stays, saves to wishlist, and reviews stays through the web application.")
+Person(travelConsultant, "Travel Consultant", "Manages platform data and user interactions.")
+Person(contentCreator, "Content Creator", "Contributes travel content to the platform.")
+
+System_Boundary(qwest, "QWEST Platform") {
+    Container(webApp, "NextJS Frontend", "NextJS", "Facilitates booking, wishlisting, and reviewing of stays. Offers trip exploration.")
+    Container(springApp, "Spring Boot Backend", "Java Spring Boot", "Processes booking, wishlist operations, and reviews. Manages logic and user data. Integrates with external APIs.")
+    ContainerDb(database, "MySQL Database", "SQL", "Stores bookings, wishlists, reviews, user profiles, and travel content.")
+
+    Rel(user, webApp, "Interacts via", "HTTP/HTTPS")
+    Rel(travelConsultant, springApp, "Manages through", "HTTP/HTTPS")
+    Rel(contentCreator, springApp, "Contributes content via", "HTTP/HTTPS")
+    Rel(webApp, springApp, "Communicates with", "API calls")
+    Rel(springApp, database, "Reads from/Writes to")
+}
+
+System_Ext(travelAPIs, "Travel APIs", "Provides real-time data on accommodations, flights, etc.")
+Rel(springApp, travelAPIs, "Fetches data from")
+
+SHOW_LEGEND()
+
+@enduml

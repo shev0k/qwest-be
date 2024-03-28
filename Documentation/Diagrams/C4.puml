@@ -1,0 +1,79 @@
+@startuml
+
+top to bottom direction
+skinparam linetype ortho
+
+interface StayListingService {
+    +findAllDto(): List<StayListingDTO>
+    +findById(Long): Optional<StayListingDTO>
+    +save(StayListingDTO): StayListingDTO
+    +deleteById(Long): void
+}
+
+class StayListingServiceImpl {
+    -stayListingRepository: StayListingRepository
+    +StayListingServiceImpl(StayListingRepository, AuthorRepository, AmenityRepository, StayListingMapper, GeocodingService)
+    +findAllDto(): List<StayListingDTO>
+    +findById(Long): Optional<StayListingDTO>
+    +save(StayListingDTO): StayListingDTO
+    +deleteById(Long): void
+}
+
+interface StayListingRepository {
+    +save(StayListing): StayListing
+    +findById(Long): Optional<StayListing>
+    +findAll(): List<StayListing>
+    +deleteById(Long): void
+}
+
+class StayListing {
+    -id: Long
+    -author: Author
+    -date: LocalDate
+    -title: String
+    -featuredImage: String
+    -galleryImages: List<GalleryImage>
+    -reviewStart: Double
+    -reviewCount: Integer
+    -country: String
+    ...
+    +StayListing()
+}
+
+interface StayListingMapper {
+    +toDto(StayListing): StayListingDTO
+    +toEntity(StayListingDTO): StayListing
+}
+
+class StayListingDTO {
+    -id: Long
+    -authorId: Long
+    -date: LocalDate
+    -title: String
+    -featuredImage: String
+    -galleryImageUrls: List<String>
+    -reviewStart: Double
+    -reviewCount: Integer
+    -country: String
+    ...
+    +StayListingDTO()
+}
+
+class StayListingController {
+    -stayListingService: StayListingService
+    +StayListingController(StayListingService)
+    +getAllStayListings(): ResponseEntity<List<StayListingDTO>>
+    +getStayListingById(Long): ResponseEntity<StayListingDTO>
+    +createStayListing(StayListingDTO): ResponseEntity<StayListingDTO>
+    +updateStayListing(Long, StayListingDTO): ResponseEntity<StayListingDTO>
+    +deleteStayListing(Long): ResponseEntity<Void>
+}
+
+StayListingServiceImpl -up-|> StayListingService : implements
+StayListingServiceImpl -right-> StayListingRepository : uses
+StayListing "1" -left- "*" StayListingRepository : stores
+StayListingServiceImpl -down-> StayListingMapper : uses
+StayListingDTO -right- StayListing : Data transfer for
+StayListingController -up-> StayListingService : Uses
+
+@enduml
