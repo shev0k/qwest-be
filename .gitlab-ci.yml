@@ -15,11 +15,30 @@ before_script:
   - chmod +x ./gradlew
 
 stages:
+  - build
+  - test
   - docker
+
+build:
+  stage: build
+  image: gradle:jdk17
+  script:
+    - ./gradlew assemble
+
+test:
+  stage: test
+  image: gradle:jdk17
+  services:
+    - name: mysql:latest
+      alias: qwest-staging-db
+  variables:
+    SPRING_PROFILES_ACTIVE: test
+  script:
+    - ./gradlew test
 
 docker:
   stage: docker
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin https://git.fhict.nl
-    - docker build --pull -t $CI_REGISTRY/I499309/qwest-be:$CI_COMMIT_REF_SLUG .
-    - docker push $CI_REGISTRY/I499309/qwest-be:$CI_COMMIT_REF_SLUG
+    - docker build --pull -t qwest-be .
+    - docker push qwest-be
