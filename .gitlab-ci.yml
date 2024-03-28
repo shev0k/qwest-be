@@ -17,23 +17,6 @@ before_script:
 stages:
   - docker
 
-build:
-  stage: build
-  image: gradle:jdk17
-  script:
-    - ./gradlew assemble
-
-test:
-  stage: test
-  image: gradle:jdk17
-  services:
-    - name: mysql:latest
-      alias: qwest-staging-db
-  variables:
-    SPRING_PROFILES_ACTIVE: test
-  script:
-    - ./gradlew test
-
 docker:
   stage: docker
   script:
