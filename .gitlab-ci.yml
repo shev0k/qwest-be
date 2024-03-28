@@ -12,6 +12,9 @@ variables:
 services:
   - docker:19.03.12-dind
 
+before_script:
+  - chmod +x ./gradlew
+
 stages:
   - build
   - test
