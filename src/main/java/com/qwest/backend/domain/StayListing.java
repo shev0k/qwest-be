@@ -1,7 +1,11 @@
 package com.qwest.backend.domain;
 
+import com.qwest.backend.domain.util.*;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,32 +21,66 @@ public class StayListing {
     @JoinColumn(name = "author_id")
     private Author author;
 
-    private String date;
-    private String href;
+    private LocalDate date;
     private String title;
     private String featuredImage;
 
-    @ElementCollection
-    private List<String> galleryImgs;
+    @OneToMany(mappedBy = "stayListing", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GalleryImage> galleryImages;
 
-    private Integer commentCount;
-    private Integer viewCount;
-    private String address;
     private Double reviewStart;
     private Integer reviewCount;
-    private Boolean isLiked;
-    private String price;
 
-    @ManyToOne
-    @JoinColumn(name = "listing_category_id")
-    private Taxonomy listingCategory;
+    // Location Information
+    private String country;
+    private String street;
+    private String roomNumber;
+    private String city;
+    private String state;
+    private String postalCode;
 
+    @Enumerated(EnumType.STRING)
+    private PropertyType propertyType;
+
+    @Enumerated(EnumType.STRING)
+    private RentalFormType rentalFormType;
+
+    // Property Specifications
+    private Double acreage;
     private Integer maxGuests;
     private Integer bedrooms;
+    private Integer beds;
     private Integer bathrooms;
-    private String saleOff;
-    private Boolean isAds;
+    private Integer kitchens;
 
+    // Check-in / Check-out hours
+    private String checkInHours;
+    private String checkOutHours;
+    private String specialRestrictions;
+
+    // Accommodation Description
+    private String accommodationDescription;
+
+    // Property Rates
+    private Double weekdayPrice;
+    private Double weekendPrice;
+    private Double longTermStayDiscount;
+
+    // Stay Duration
+    private Integer minimumNights;
+    private Integer maximumNights;
+
+    // Location Coordinates
     private Double lat;
     private Double lng;
+
+    @ManyToMany
+    @JoinTable(
+            name = "stay_listing_amenities",
+            joinColumns = @JoinColumn(name = "stay_listing_id"),
+            inverseJoinColumns = @JoinColumn(name = "amenity_id"))
+    private Set<Amenity> amenities;
+
+    @OneToMany(mappedBy = "stayListing", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BookingCalendar> bookingCalendar;
 }
