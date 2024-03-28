@@ -25,5 +25,7 @@ test:
   services:
     - name: mysql:latest
       alias: qwest-staging-db
+  variables:
+    SPRING_PROFILES_ACTIVE: test
   script:
-    - ./gradlew test -Dspring.profiles.active=test
+    - ./gradlew test
