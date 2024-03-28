@@ -10,17 +10,17 @@ variables:
   IMAGE_NAME: "${CI_REGISTRY_IMAGE}/${CI_PROJECT_PATH,,}:${CI_COMMIT_REF_SLUG}"
 
 services:
-  - docker:dind
+  - docker:19.03.12-dind
+
+before_script:
+  - chmod +x ./gradlew
+  - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
 
 stages:
   - build
   - test
   - docker
-
-before_script:
-  - apk update && apk add --no-cache curl jq
-  - chmod +x ./gradlew
-  - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
 build:
   stage: build
@@ -46,8 +46,8 @@ docker:
     - docker push "$IMAGE_NAME"
     - |
       if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-        docker tag "$IMAGE_NAME" "$CI_REGISTRY_IMAGE:latest"
-        docker push "$CI_REGISTRY_IMAGE:latest"
+        docker tag "$IMAGE_NAME" "$CI_REGISTRY_IMAGE"
+        docker push "$CI_REGISTRY_IMAGE"
       fi
   rules:
     - if: $CI_COMMIT_BRANCH
