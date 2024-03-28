@@ -35,17 +35,17 @@ test:
 
 docker_build:
   stage: docker_build
-  image: docker:latest
+  image: docker:19.03.12
   services:
-    - docker:latest-dind
+    - docker:19.03.12-dind
   script:
     - docker build -t $IMAGE_NAME .
 
 docker_push:
   stage: docker_push
-  image: docker:latest
+  image: docker:19.03.12
   services:
-    - docker:latest-dind
+    - docker:19.03.12-dind
   script:
     - echo "Deploying image $IMAGE_NAME"
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
