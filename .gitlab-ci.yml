@@ -7,15 +7,9 @@ image: gradle:jdk17
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-  # Add MySQL configuration variables here
-  MYSQL_DATABASE: "qwest_staging_db"
-  MYSQL_ROOT_PASSWORD: "1234"
-  SPRING_DATASOURCE_URL: "jdbc:mysql://qwest-staging-db:3306/qwest_staging_db?useSSL=false&allowPublicKeyRetrieval=true"
-  SPRING_DATASOURCE_USERNAME: "root"
-  SPRING_DATASOURCE_PASSWORD: "1234"
 
 before_script:
-  - chmod +x ./gradlew # Ensure gradlew is executable
+  - chmod +x ./gradlew
 
 stages:
   - build
