@@ -7,7 +7,7 @@ variables:
   SPRING_DATASOURCE_URL: "jdbc:mysql://qwest-staging-db:3306/qwest_staging_db?useSSL=false&allowPublicKeyRetrieval=true"
   SPRING_DATASOURCE_USERNAME: "root"
   SPRING_DATASOURCE_PASSWORD: "1234"
-  IMAGE_NAME: "${CI_REGISTRY_IMAGE}/${CI_PROJECT_PATH,,}:${CI_COMMIT_REF_SLUG//\//-}"
+  IMAGE_NAME: "${CI_REGISTRY_IMAGE}/${CI_PROJECT_PATH,,}:$(echo ${CI_COMMIT_REF_SLUG} | tr '/' '-')"
 
 services:
   - docker:19.03.12-dind
@@ -41,7 +41,6 @@ docker:
   stage: docker
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin https://git.fhict.nl
-    # Verify IMAGE_NAME to ensure its correctness before using it
     - echo "Building Docker image with tag: $IMAGE_NAME"
     - docker build --pull -t "$IMAGE_NAME" .
     - docker push "$IMAGE_NAME"
