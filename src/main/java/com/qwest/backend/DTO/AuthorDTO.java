@@ -1,7 +1,13 @@
 package com.qwest.backend.DTO;
 
+import com.qwest.backend.domain.StayListing;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -14,7 +20,9 @@ public class AuthorDTO {
     private String bgImage;
     private String email;
     private Integer count;
-    private String desc;
+    private String description;
     private String jobName;
     private Double starRating;
+
+    private Set<Long> stayListingIds;
 }

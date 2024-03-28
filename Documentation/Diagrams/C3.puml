@@ -4,21 +4,31 @@
 title Component Diagram for QWEST
 
 Container_Boundary(api, "Spring Boot Backend") {
-    Component(userController, "User Controller", "Java Spring Rest Controller", "Manages user registration, profile updates, and authentication")
-    Component(itineraryController, "Itinerary Controller", "Java Spring Rest Controller", "Allows users to create, update, and view itineraries")
-    Component(reviewController, "Review Controller", "Java Spring Rest Controller", "Enables users to post and read reviews on itineraries")
+    Component(authorController, "Author Controller", "Java Spring Rest Controller", "Manages author profiles and their contributions.")
+    Component(amenityController, "Amenity Controller", "Java Spring Rest Controller", "Handles amenities listing and management.")
+    Component(stayListingController, "Stay Listing Controller", "Java Spring Rest Controller", "Manages stay listings.")
 
-    Component(userService, "User Service", "Java Spring Service", "Implements business logic related to user accounts")
-    Component(itineraryService, "Itinerary Service", "Java Spring Service", "Implements business logic for itinerary management")
-    Component(reviewService, "Review Service", "Java Spring Service", "Implements business logic for managing itinerary reviews")
+    Component(authorService, "Author Service", "Java Spring Service", "Implements business logic for author profile management.")
+    Component(amenityService, "Amenity Service", "Java Spring Service", "Implements business logic for amenities management.")
+    Component(stayListingService, "Stay Listing Service", "Java Spring Service", "Implements business logic for stay listings management.")
 
-    Component(userRepo, "User Repository", "JPA Repository", "Interfaces with the database for user data persistence")
+    Component(authorRepo, "Author Repository", "JPA Repository", "Interfaces with the database for author data persistence.")
+    Component(amenityRepo, "Amenity Repository", "JPA Repository", "Interfaces with the database for amenities data persistence.")
+    Component(stayListingRepo, "Stay Listing Repository", "JPA Repository", "Interfaces with the database for stay listings data persistence.")
 
-    Rel(userController, userService, "Uses")
-    Rel(itineraryController, itineraryService, "Uses")
-    Rel(reviewController, reviewService, "Uses")
+    ContainerDb(database, "MySQL Database", "SQL Database", "Stores all persistent data for the platform.")
 
-    Rel(userService, userRepo, "Interacts with")
+    Rel(authorController, authorService, "Uses")
+    Rel(amenityController, amenityService, "Uses")
+    Rel(stayListingController, stayListingService, "Uses")
+
+    Rel(authorService, authorRepo, "Interacts with")
+    Rel(amenityService, amenityRepo, "Interacts with")
+    Rel(stayListingService, stayListingRepo, "Interacts with")
+
+    Rel(authorRepo, database, "Reads from/Writes to")
+    Rel(amenityRepo, database, "Reads from/Writes to")
+    Rel(stayListingRepo, database, "Reads from/Writes to")
 }
 
 @enduml
