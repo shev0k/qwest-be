@@ -7,7 +7,6 @@ variables:
   SPRING_DATASOURCE_URL: "jdbc:mysql://qwest-staging-db:3306/qwest_staging_db?useSSL=false&allowPublicKeyRetrieval=true"
   SPRING_DATASOURCE_USERNAME: "root"
   SPRING_DATASOURCE_PASSWORD: "1234"
-  # Ensure IMAGE_NAME is properly formatted. Replace '/' with '-' in CI_PROJECT_PATH if necessary.
   IMAGE_NAME: "${CI_REGISTRY_IMAGE}/${CI_PROJECT_PATH,,}:${CI_COMMIT_REF_SLUG}"
 
 services:
@@ -17,11 +16,6 @@ stages:
   - build
   - test
   - docker
-
-before_script:
-  - apk add --no-cache openjdk17
-  - chmod +x ./gradlew
-  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
 
 build:
   stage: build
@@ -43,6 +37,7 @@ test:
 docker:
   stage: docker
   script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     - docker build --pull -t "$IMAGE_NAME" .
     - docker push "$IMAGE_NAME"
     - |
