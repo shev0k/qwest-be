@@ -40,7 +40,7 @@ test:
 docker:
   stage: docker
   script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin https://git.fhict.nl
     - docker build --pull -t "$IMAGE_NAME" .
     - docker push "$IMAGE_NAME"
     - |
