@@ -24,7 +24,9 @@ build:
   image: gradle:jdk17
   script:
     - ./gradlew assemble
-
+  artifacts:
+    paths:
+      - build/libs/*.jar
 test:
   stage: test
   image: gradle:jdk17
