@@ -11,6 +11,9 @@ variables:
   SPRING_DATASOURCE_USERNAME: "root"
   SPRING_DATASOURCE_PASSWORD: "1234"
 
+before_script:
+  - chmod +x ./gradlew # Ensure gradlew is executable
+
 stages:
   - build
   - test
