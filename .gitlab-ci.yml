@@ -41,6 +41,11 @@ test:
 sonarqube-check:
   stage: sonarqube-check
   image: gradle:jdk17
+  services:
+    - name: mysql:latest
+      alias: qwest-staging-db
+  variables:
+    SPRING_PROFILES_ACTIVE: test
   script:
-    - ./gradlew test sonar jacocoTestReport
+    - ./gradlew sonar
   allow_failure: true
