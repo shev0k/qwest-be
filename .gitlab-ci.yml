@@ -17,7 +17,7 @@ before_script:
 stages:
   - build
   - test
-  - analysis
+  - sonarqube-check
 
 build:
   stage: build
@@ -27,7 +27,6 @@ build:
   artifacts:
     paths:
       - build/libs/*.jar
-
 test:
   stage: test
   image: gradle:jdk17
@@ -38,18 +37,10 @@ test:
     SPRING_PROFILES_ACTIVE: test
   script:
     - ./gradlew test
-  artifacts:
-    reports:
-      junit: build/reports/**/*.xml
-    paths:
-      - build/reports/tests/
-      - build/reports/jacoco/
-
+    
 sonarqube-check:
-  stage: analysis
+  stage: sonarqube-check
   image: gradle:jdk17
-  dependencies:
-    - test
   script:
-    - ./gradlew sonar
+    - ./gradlew test sonar jacocoTestReport
   allow_failure: true
