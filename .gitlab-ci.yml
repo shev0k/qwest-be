@@ -17,6 +17,7 @@ before_script:
 stages:
   - build
   - test
+  - sonarqube-check
 
 build:
   stage: build
@@ -36,3 +37,10 @@ test:
     SPRING_PROFILES_ACTIVE: test
   script:
     - ./gradlew test
+    
+sonarqube-check:
+  stage: test
+  image: gradle:jdk17
+  script:
+    - ./gradlew test sonar jacocoTestReport
+  allow_failure: true
