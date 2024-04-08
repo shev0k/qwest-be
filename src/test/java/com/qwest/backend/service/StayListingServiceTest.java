@@ -117,6 +117,57 @@ class StayListingServiceTest {
         verify(stayListingMapper).toDto(any(StayListing.class));
     }
 
+    @Test
+    void saveStayListingTest_AmenityIdsNull() {
+        stayListingDTO.setAmenityIds(null);
+        stayListingDTO.setGalleryImageUrls(Arrays.asList("https://example.com/image1.jpg", "https://example.com/image2.jpg"));
+        stayListingDTO.setAvailableDates(Collections.singletonList(LocalDate.now()));
+
+        Author mockAuthor = new Author();
+        mockAuthor.setId(stayListingDTO.getAuthorId());
+        when(authorRepository.findById(stayListingDTO.getAuthorId())).thenReturn(Optional.of(mockAuthor));
+
+        LatLng mockLatLng = new LatLng(1.0, 1.0);
+        when(geocodingService.getLatLngForAddress(anyString())).thenReturn(mockLatLng);
+
+        when(stayListingMapper.toEntity(any(StayListingDTO.class))).thenReturn(stayListing);
+        when(stayListingRepository.save(any(StayListing.class))).thenReturn(stayListing);
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        StayListingDTO saved = stayListingService.save(stayListingDTO);
+
+        assertNotNull(saved);
+        assertEquals(stayListingDTO.getTitle(), saved.getTitle());
+        verify(amenityRepository, never()).findAllById(any());
+        verify(stayListingRepository).save(stayListing);
+    }
+
+    @Test
+    void saveStayListingTest_AmenityIdsEmpty() {
+        stayListingDTO.setAmenityIds(Collections.emptySet());
+        stayListingDTO.setGalleryImageUrls(Arrays.asList("https://example.com/image1.jpg", "https://example.com/image2.jpg"));
+        stayListingDTO.setAvailableDates(Collections.singletonList(LocalDate.now()));
+
+        Author mockAuthor = new Author();
+        mockAuthor.setId(stayListingDTO.getAuthorId());
+        when(authorRepository.findById(stayListingDTO.getAuthorId())).thenReturn(Optional.of(mockAuthor));
+
+        LatLng mockLatLng = new LatLng(1.0, 1.0);
+        when(geocodingService.getLatLngForAddress(anyString())).thenReturn(mockLatLng);
+
+        when(stayListingMapper.toEntity(any(StayListingDTO.class))).thenReturn(stayListing);
+        when(stayListingRepository.save(any(StayListing.class))).thenReturn(stayListing);
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        StayListingDTO saved = stayListingService.save(stayListingDTO);
+
+        assertNotNull(saved);
+        assertEquals(stayListingDTO.getTitle(), saved.getTitle());
+        verify(amenityRepository, never()).findAllById(any()); // Ensuring that no call is made to findAllById
+        verify(stayListingRepository).save(stayListing);
+    }
+
+
 
     @Test
     void deleteByIdTest() {
