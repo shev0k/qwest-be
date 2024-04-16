@@ -1,23 +1,24 @@
 package com.qwest.backend.mapper;
 
 import com.qwest.backend.domain.Author;
-import com.qwest.backend.DTO.AuthorDTO;
 import com.qwest.backend.domain.StayListing;
+import com.qwest.backend.domain.util.AuthorRole;
+import com.qwest.backend.DTO.AuthorDTO;
 import org.mapstruct.*;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
-public abstract class AuthorMapper {
+public interface AuthorMapper {
 
-    @Mappings({
-            @Mapping(target = "stayListingIds", ignore = true)
-    })
-    public abstract AuthorDTO toDto(Author author);
+    @Mapping(target = "stayListingIds", ignore = true)
+    @Mapping(target = "password", ignore = true)
+    @Mapping(target = "confirmPassword", ignore = true)
+    AuthorDTO toDto(Author author);
 
     @AfterMapping
-    protected void convertStayListingsToIds(Author author, @MappingTarget AuthorDTO dto) {
+    default void convertStayListingsToIds(Author author, @MappingTarget AuthorDTO dto) {
         Set<Long> stayListingIds = author.getStayListings()
                 .stream()
                 .map(StayListing::getId)
@@ -25,9 +26,18 @@ public abstract class AuthorMapper {
         dto.setStayListingIds(stayListingIds);
     }
 
-    @Mappings({
-            @Mapping(target = "stayListings", ignore = true)
-    })
-    public abstract Author toEntity(AuthorDTO authorDTO);
+    @Mapping(target = "stayListings", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
+    Author toEntity(AuthorDTO authorDTO);
 
+    @AfterMapping
+    default void handleRoleConversion(@MappingTarget Author author, AuthorDTO authorDTO) {
+        if (authorDTO.getRole() != null) {
+            try {
+                author.setRole(AuthorRole.valueOf(authorDTO.getRole()));
+            } catch (IllegalArgumentException e) {
+                author.setRole(null);
+            }
+        }
+    }
 }

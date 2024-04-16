@@ -1,12 +1,15 @@
 package com.qwest.backend.controller;
 
 import com.qwest.backend.DTO.AuthorDTO;
+import com.qwest.backend.configuration.SecurityConfig;
 import com.qwest.backend.service.AuthorService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -19,6 +22,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthorController.class)
+@Import(SecurityConfig.class)
+
 class AuthorControllerTest {
 
     @Autowired
@@ -28,6 +33,7 @@ class AuthorControllerTest {
     private AuthorService authorService;
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void getAllAuthorsTest() throws Exception {
         AuthorDTO author1 = new AuthorDTO();
         author1.setId(1L);
@@ -46,6 +52,7 @@ class AuthorControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void getAuthorByIdTest() throws Exception {
         AuthorDTO author = new AuthorDTO();
         author.setId(1L);
@@ -61,6 +68,7 @@ class AuthorControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void createAuthorTest() throws Exception {
         AuthorDTO newAuthor = new AuthorDTO();
         newAuthor.setFirstName("Jane");
@@ -83,6 +91,7 @@ class AuthorControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void updateAuthorTest() throws Exception {
         Long authorId = 1L;
         AuthorDTO existingAuthor = new AuthorDTO();
@@ -96,7 +105,6 @@ class AuthorControllerTest {
         updatedAuthor.setLastName("Doe");
 
         when(authorService.findById(authorId)).thenReturn(Optional.of(existingAuthor));
-
         when(authorService.save(any(AuthorDTO.class))).thenReturn(updatedAuthor);
 
         mockMvc.perform(put("/api/authors/{id}", authorId)
@@ -109,6 +117,7 @@ class AuthorControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void updateAuthor_NotFound() throws Exception {
         Long nonExistentAuthorId = 99L;
 
@@ -121,6 +130,7 @@ class AuthorControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void deleteAuthor_Success() throws Exception {
         Long authorId = 1L;
 
@@ -133,6 +143,7 @@ class AuthorControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void deleteAuthor_NotFound() throws Exception {
         Long nonExistentAuthorId = 99L;
 
@@ -140,20 +151,5 @@ class AuthorControllerTest {
 
         mockMvc.perform(delete("/api/authors/{id}", nonExistentAuthorId))
                 .andExpect(status().isNotFound());
-    }
-
-
-
-    @Test
-    void deleteAuthorTest() throws Exception {
-        Long authorId = 1L;
-        when(authorService.findById(authorId)).thenReturn(Optional.of(new AuthorDTO()));
-
-        doNothing().when(authorService).deleteById(authorId);
-
-        mockMvc.perform(delete("/api/authors/{id}", authorId))
-                .andExpect(status().isNoContent());
-
-        verify(authorService).deleteById(authorId);
     }
 }

@@ -1,12 +1,15 @@
 package com.qwest.backend.controller;
 
 import com.qwest.backend.DTO.StayListingDTO;
+import com.qwest.backend.configuration.SecurityConfig;
 import com.qwest.backend.service.StayListingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -19,6 +22,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(StayListingController.class)
+@Import(SecurityConfig.class)
+
 class StayListingControllerTest {
 
     @Autowired
@@ -28,6 +33,7 @@ class StayListingControllerTest {
     private StayListingService stayListingService;
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void getAllStayListingsTest() throws Exception {
         StayListingDTO stayListing = new StayListingDTO();
         stayListing.setId(1L);
@@ -44,6 +50,7 @@ class StayListingControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void getStayListingByIdTest() throws Exception {
         StayListingDTO stayListing = new StayListingDTO();
         stayListing.setId(1L);
@@ -59,6 +66,7 @@ class StayListingControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void createStayListingTest() throws Exception {
         StayListingDTO newListing = new StayListingDTO();
         newListing.setTitle("Beach House");
@@ -78,6 +86,7 @@ class StayListingControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void updateStayListingTest() throws Exception {
         Long listingId = 1L;
         StayListingDTO updatedListing = new StayListingDTO();
@@ -96,6 +105,7 @@ class StayListingControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void updateStayListing_NotFound() throws Exception {
         Long nonExistentListingId = 99L;
 
@@ -108,6 +118,7 @@ class StayListingControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void deleteStayListing_Success() throws Exception {
         Long listingId = 1L;
 
@@ -120,6 +131,7 @@ class StayListingControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void deleteStayListing_NotFound() throws Exception {
         Long nonExistentListingId = 99L;
 

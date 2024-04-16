@@ -1,12 +1,15 @@
 package com.qwest.backend.controller;
 
 import com.qwest.backend.DTO.AmenityDTO;
+import com.qwest.backend.configuration.SecurityConfig;
 import com.qwest.backend.service.AmenityService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -19,6 +22,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AmenityController.class)
+@Import(SecurityConfig.class)
+
 class AmenityControllerTest {
 
     @Autowired
@@ -28,6 +33,7 @@ class AmenityControllerTest {
     private AmenityService amenityService;
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void getAllAmenitiesTest() throws Exception {
         AmenityDTO amenity1 = new AmenityDTO();
         amenity1.setId(1L);
@@ -44,6 +50,7 @@ class AmenityControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void createAmenityTest() throws Exception {
         AmenityDTO newAmenity = new AmenityDTO();
         newAmenity.setName("Pool");
@@ -63,6 +70,7 @@ class AmenityControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void deleteAmenityTest() throws Exception {
         Long amenityId = 1L;
 

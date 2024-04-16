@@ -1,12 +1,15 @@
 package com.qwest.backend.controller;
 
+import com.qwest.backend.configuration.SecurityConfig;
 import com.qwest.backend.domain.user.User;
 import com.qwest.backend.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -21,6 +24,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UserController.class)
+@Import(SecurityConfig.class)
+
 class UserControllerTest {
 
     @Autowired
@@ -30,6 +35,7 @@ class UserControllerTest {
     private UserService userService;
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void getAllUsersTest() throws Exception {
         User user1 = new User();
         user1.setId(1L);
@@ -48,6 +54,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void getUserByIdTest() throws Exception {
         User user = new User();
         user.setId(1L);
@@ -65,6 +72,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void createUserTest() throws Exception {
         User user = new User();
         user.setUsername("newuser");
@@ -82,6 +90,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void updateUserTest() throws Exception {
         User user = new User();
         user.setId(1L);
@@ -99,6 +108,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void updateUser_Successful() throws Exception {
         Long userId = 1L;
         User user = new User();
@@ -117,6 +127,7 @@ class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void updateUser_NotFound() throws Exception {
         Long userId = 1L;
         User user = new User();
@@ -134,6 +145,7 @@ class UserControllerTest {
 
 
     @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
     void deleteUserTest() throws Exception {
         doNothing().when(userService).deleteUser(1L);
 

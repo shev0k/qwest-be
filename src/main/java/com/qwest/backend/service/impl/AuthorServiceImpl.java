@@ -2,10 +2,12 @@ package com.qwest.backend.service.impl;
 
 import com.qwest.backend.domain.Author;
 import com.qwest.backend.DTO.AuthorDTO;
+import com.qwest.backend.domain.util.AuthorRole;
 import com.qwest.backend.mapper.AuthorMapper;
 import com.qwest.backend.repository.AuthorRepository;
 import com.qwest.backend.service.AuthorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,11 +19,13 @@ public class AuthorServiceImpl implements AuthorService {
 
     private final AuthorRepository authorRepository;
     private final AuthorMapper authorMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public AuthorServiceImpl(AuthorRepository authorRepository, AuthorMapper authorMapper) {
+    public AuthorServiceImpl(AuthorRepository authorRepository, AuthorMapper authorMapper, PasswordEncoder passwordEncoder) {
         this.authorRepository = authorRepository;
         this.authorMapper = authorMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -37,9 +41,16 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public AuthorDTO save(AuthorDTO authorDTO) {
         Author author = authorMapper.toEntity(authorDTO);
+        if (author.getId() == null) {
+            author.setRole(AuthorRole.TRAVELER);
+        }
+        if (authorDTO.getPassword() != null && !authorDTO.getPassword().isEmpty()) {
+            author.setPasswordHash(passwordEncoder.encode(authorDTO.getPassword()));
+        }
         author = authorRepository.save(author);
         return authorMapper.toDto(author);
     }
+
 
     @Override
     public void deleteById(Long id) {
