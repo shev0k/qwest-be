@@ -15,26 +15,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable) // Disable CSRF protection as well, useful for API testing
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/api/private/**").hasRole("FOUNDER")
-                        .requestMatchers("/api/host/**").hasAnyRole("HOST", "FOUNDER")
-                        .anyRequest().authenticated())
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .defaultSuccessUrl("/homepage", true)
-                        .permitAll())
-                .logout(logout -> logout
-                        .logoutSuccessUrl("/login?logout")
-                        .permitAll())
-                .httpBasic(Customizer.withDefaults());
+                        .anyRequest().permitAll()) // Permit all requests without any authentication
+                .httpBasic(Customizer.withDefaults()); // Keep basic HTTP authentication available, can remove if not needed
         return http.build();
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(); // Maintain the password encoder bean for future use
     }
 }
+
 

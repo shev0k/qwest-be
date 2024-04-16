@@ -77,4 +77,3 @@ sonar {
 		property "sonar.coverage.exclusions", "**/mapper/**,**/domain/**,**/domain/geocoding/**,**/BackendApplication.java,**/domain/util/**,**/exception/**"
 	}
 }
-
