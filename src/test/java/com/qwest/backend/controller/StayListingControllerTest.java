@@ -1,8 +1,9 @@
 package com.qwest.backend.controller;
 
-import com.qwest.backend.DTO.StayListingDTO;
-import com.qwest.backend.configuration.SecurityConfig;
-import com.qwest.backend.service.StayListingService;
+import com.qwest.backend.configuration.security.token.JwtUtil;
+import com.qwest.backend.dto.StayListingDTO;
+import com.qwest.backend.configuration.security.SecurityConfig;
+import com.qwest.backend.business.StayListingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -22,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(StayListingController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, JwtUtil.class})
 
 class StayListingControllerTest {
 

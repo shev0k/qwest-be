@@ -1,8 +1,9 @@
 package com.qwest.backend.controller;
 
-import com.qwest.backend.DTO.AuthorDTO;
-import com.qwest.backend.configuration.SecurityConfig;
-import com.qwest.backend.service.AuthorService;
+import com.qwest.backend.configuration.security.token.JwtUtil;
+import com.qwest.backend.dto.AuthorDTO;
+import com.qwest.backend.configuration.security.SecurityConfig;
+import com.qwest.backend.business.AuthorService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -22,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthorController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, JwtUtil.class})
 
 class AuthorControllerTest {
 
@@ -152,4 +153,36 @@ class AuthorControllerTest {
         mockMvc.perform(delete("/api/authors/{id}", nonExistentAuthorId))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
+    void login_Successful_ReturnsJwt() throws Exception {
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setEmail("user@example.com");
+        authorDTO.setPassword("correctpassword");
+        authorDTO.setJwt("mock-jwt-token");
+
+        when(authorService.login(any(AuthorDTO.class))).thenReturn(Optional.of(authorDTO));
+
+        // Perform the login attempt
+        mockMvc.perform(post("/api/authors/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"user@example.com\",\"password\":\"correctpassword\"}"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Authorization", "Bearer mock-jwt-token"))
+                .andExpect(jsonPath("$.email", is("user@example.com")))
+                .andExpect(jsonPath("$.jwt", is("mock-jwt-token")));
+    }
+
+    @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
+    void login_Unsuccessful_ReturnsUnauthorized() throws Exception {
+        when(authorService.login(any(AuthorDTO.class))).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/authors/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"user@example.com\",\"password\":\"wrongpassword\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
 }

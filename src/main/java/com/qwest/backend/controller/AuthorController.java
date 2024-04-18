@@ -1,7 +1,7 @@
 package com.qwest.backend.controller;
 
-import com.qwest.backend.DTO.AuthorDTO;
-import com.qwest.backend.service.AuthorService;
+import com.qwest.backend.dto.AuthorDTO;
+import com.qwest.backend.business.AuthorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +59,13 @@ public class AuthorController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthorDTO> login(@RequestBody AuthorDTO authorDTO) {
+        return authorService.login(authorDTO)
+                .map(dto -> ResponseEntity.ok().header("Authorization", "Bearer " + dto.getJwt()).body(dto))
+                .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 }
 
