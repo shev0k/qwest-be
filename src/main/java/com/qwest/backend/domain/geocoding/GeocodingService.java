@@ -5,7 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
-import com.qwest.backend.configuration.AppConfig;
+
+import java.util.Optional;
 
 @Service
 public class GeocodingService {
@@ -28,12 +29,15 @@ public class GeocodingService {
 
         ResponseEntity<GeocodeResponse> response = restTemplate.getForEntity(finalUrl, GeocodeResponse.class);
 
-        if (response.getBody() != null && !response.getBody().getResults().isEmpty()) {
-            GeocodeResult result = response.getBody().getResults().get(0);
-            GeocodeLocation location = result.getGeometry().getLocation();
-            return new LatLng(location.getLat(), location.getLng());
-        } else {
-            throw new IllegalStateException("Could not fetch location for address: " + address);
-        }
+        // Handling potential null values using Optional
+        return Optional.ofNullable(response.getBody())
+                .filter(body -> !body.getResults().isEmpty())
+                .map(body -> {
+                    GeocodeResult result = body.getResults().get(0);
+                    GeocodeLocation location = result.getGeometry().getLocation();
+                    return new LatLng(location.getLat(), location.getLng());
+                })
+                .orElseThrow(() -> new IllegalStateException("Could not fetch location for address: " + address +
+                        "; response status: " + response.getStatusCode()));
     }
 }

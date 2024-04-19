@@ -1,0 +1,87 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+skinparam lifelineBorderColor Black
+skinparam lifelineBackgroundColor White
+
+skinparam sequenceArrowThickness 2
+skinparam sequenceLifeLineBorderThickness 2
+
+skinparam sequenceParticipant BorderColor Black
+skinparam sequenceParticipant BackgroundColor White
+skinparam sequenceParticipant FontSize 16
+skinparam sequenceParticipant FontColor Black
+
+skinparam sequenceActor BackgroundColor White
+skinparam sequenceActor FontSize 16
+skinparam sequenceActor FontColor Black
+
+skinparam sequenceGroupHeaderFontColor White
+skinparam sequenceGroupBackgroundColor Blue
+skinparam sequenceGroupBorderColor Blue
+
+actor User
+participant "SearchPage" as SearchPage
+participant "SearchResults" as SearchResults
+participant "ListingDetails" as ListingDetails
+participant "BookingPage" as BookingPage
+participant "PaymentGateway" as PaymentGateway
+participant "ConfirmationPage" as ConfirmationPage
+participant "Backend" as Backend
+participant "Database" as Database
+
+User -> SearchPage : Input search criteria (dates, guests)
+activate SearchPage
+
+SearchPage -> Backend : Request search results
+activate Backend
+Backend -> Database : Query available listings
+activate Database
+Database -> Backend : Return listings
+deactivate Database
+Backend -> SearchResults : Send search results
+deactivate Backend
+
+SearchResults -> User : Display listings
+activate SearchResults
+deactivate SearchResults
+
+User -> ListingDetails : Select listing
+activate ListingDetails
+ListingDetails -> Backend : Request listing details
+activate Backend
+Backend -> ListingDetails : Send details and gallery
+deactivate Backend
+ListingDetails -> User : Display details and gallery
+deactivate ListingDetails
+
+User -> BookingPage : Initiate booking (choose dates)
+activate BookingPage
+BookingPage -> Backend : Check date availability
+activate Backend
+Backend -> Database : Verify availability
+activate Database
+Database -> Backend : Availability status
+deactivate Database
+Backend -> BookingPage : Confirm availability / suggest splits
+deactivate Backend
+
+User -> BookingPage : Confirm booking details, choose payment
+BookingPage -> PaymentGateway : Process payment
+activate PaymentGateway
+PaymentGateway -> Backend : Confirm payment
+deactivate PaymentGateway
+activate Backend
+Backend -> Database : Update booking status
+activate Database
+Database -> Backend : Confirm update
+deactivate Database
+Backend -> ConfirmationPage : Booking confirmation
+deactivate Backend
+
+ConfirmationPage -> User : Display booking confirmation
+activate ConfirmationPage
+deactivate ConfirmationPage
+deactivate BookingPage
+
+@enduml
