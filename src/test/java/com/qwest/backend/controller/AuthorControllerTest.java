@@ -74,22 +74,26 @@ class AuthorControllerTest {
         AuthorDTO newAuthor = new AuthorDTO();
         newAuthor.setFirstName("Jane");
         newAuthor.setLastName("Doe");
+        newAuthor.setEmail("jane.doe@example.com");
 
         AuthorDTO savedAuthor = new AuthorDTO();
         savedAuthor.setId(1L);
         savedAuthor.setFirstName("Jane");
         savedAuthor.setLastName("Doe");
+        savedAuthor.setEmail("jane.doe@example.com");
 
         when(authorService.save(any(AuthorDTO.class))).thenReturn(savedAuthor);
 
         mockMvc.perform(post("/api/authors")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"firstName\":\"Jane\",\"lastName\":\"Doe\"}"))
+                        .content("{\"firstName\":\"Jane\",\"lastName\":\"Doe\", \"email\":\"jane.doe@example.com\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", is(1)))
                 .andExpect(jsonPath("$.firstName", is("Jane")))
-                .andExpect(jsonPath("$.lastName", is("Doe")));
+                .andExpect(jsonPath("$.lastName", is("Doe")))
+                .andExpect(jsonPath("$.email", is("jane.doe@example.com")));
     }
+
 
     @Test
     @WithMockUser(username="admin", roles={"FOUNDER"})
@@ -99,23 +103,27 @@ class AuthorControllerTest {
         existingAuthor.setId(authorId);
         existingAuthor.setFirstName("John");
         existingAuthor.setLastName("Doe");
+        existingAuthor.setEmail("john.doe@example.com"); // Ensure the existing author has an email
 
         AuthorDTO updatedAuthor = new AuthorDTO();
         updatedAuthor.setId(authorId);
         updatedAuthor.setFirstName("UpdatedJohn");
         updatedAuthor.setLastName("Doe");
+        updatedAuthor.setEmail("updated.john.doe@example.com"); // Include the email in the updated data
 
         when(authorService.findById(authorId)).thenReturn(Optional.of(existingAuthor));
-        when(authorService.save(any(AuthorDTO.class))).thenReturn(updatedAuthor);
+        when(authorService.update(eq(authorId), any(AuthorDTO.class))).thenReturn(updatedAuthor);
 
         mockMvc.perform(put("/api/authors/{id}", authorId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"firstName\":\"UpdatedJohn\",\"lastName\":\"Doe\"}"))
+                        .content("{\"firstName\":\"UpdatedJohn\",\"lastName\":\"Doe\", \"email\":\"updated.john.doe@example.com\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(1)))
                 .andExpect(jsonPath("$.firstName", is("UpdatedJohn")))
-                .andExpect(jsonPath("$.lastName", is("Doe")));
+                .andExpect(jsonPath("$.lastName", is("Doe")))
+                .andExpect(jsonPath("$.email", is("updated.john.doe@example.com")));
     }
+
 
     @Test
     @WithMockUser(username="admin", roles={"FOUNDER"})
@@ -126,9 +134,10 @@ class AuthorControllerTest {
 
         mockMvc.perform(put("/api/authors/{id}", nonExistentAuthorId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"firstName\":\"Nonexistent\",\"lastName\":\"Author\"}"))
+                        .content("{\"firstName\":\"Nonexistent\",\"lastName\":\"Author\", \"email\":\"nonexistent.author@example.com\"}"))
                 .andExpect(status().isNotFound());
     }
+
 
     @Test
     @WithMockUser(username="admin", roles={"FOUNDER"})

@@ -29,6 +29,9 @@ Container_Boundary(api, "Spring Boot Backend") {
     Rel(authorRepo, database, "Reads from/Writes to")
     Rel(amenityRepo, database, "Reads from/Writes to")
     Rel(stayListingRepo, database, "Reads from/Writes to")
+
+    System_Ext(travelAPIs, "Travel APIs", "Provides real-time data on accommodations, flights, etc.")
+    Rel(database, travelAPIs, "Fetches data from")
 }
 
 @enduml

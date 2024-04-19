@@ -1,79 +1,86 @@
-@startuml
+@startuml AuthorLevel4
 
-top to bottom direction
-skinparam linetype ortho
-
-interface StayListingService {
-    +findAllDto(): List<StayListingDTO>
-    +findById(Long): Optional<StayListingDTO>
-    +save(StayListingDTO): StayListingDTO
-    +deleteById(Long): void
+class Author {
+    -Long id
+    -String passwordHash
+    -String email
+    -String firstName
+    -String lastName
+    -String username
+    -String avatar
+    -String country
+    -String phoneNumber
+    -String description
+    -Integer count
+    -Double starRating
+    -AuthorRole role
+    -Set<StayListing> stayListings
+    +boolean canAcceptAuthors()
 }
 
-class StayListingServiceImpl {
-    -stayListingRepository: StayListingRepository
-    +StayListingServiceImpl(StayListingRepository, AuthorRepository, AmenityRepository, StayListingMapper, GeocodingService)
-    +findAllDto(): List<StayListingDTO>
-    +findById(Long): Optional<StayListingDTO>
-    +save(StayListingDTO): StayListingDTO
-    +deleteById(Long): void
+class AuthorDTO {
+    -Long id
+    -String password
+    -String confirmPassword
+    -String email
+    -String firstName
+    -String lastName
+    -String username
+    -String avatar
+    -String country
+    -String phoneNumber
+    -String description
+    -Integer count
+    -Double starRating
+    -String role
+    -Set<Long> stayListingIds
+    -String jwt
 }
 
-interface StayListingRepository {
-    +save(StayListing): StayListing
-    +findById(Long): Optional<StayListing>
-    +findAll(): List<StayListing>
-    +deleteById(Long): void
+interface AuthorRepository {
+    +Optional<Author> findById(Long)
+    +List<Author> findAll()
+    +Author save(Author)
+    +void deleteById(Long)
+    +Optional<Author> findByEmail(String)
 }
 
-class StayListing {
-    -id: Long
-    -author: Author
-    -date: LocalDate
-    -title: String
-    -featuredImage: String
-    -galleryImages: List<GalleryImage>
-    -reviewStart: Double
-    -reviewCount: Integer
-    -country: String
-    ...
-    +StayListing()
+interface AuthorMapper {
+    +AuthorDTO toDto(Author)
+    +Author toEntity(AuthorDTO)
 }
 
-interface StayListingMapper {
-    +toDto(StayListing): StayListingDTO
-    +toEntity(StayListingDTO): StayListing
+interface AuthorService {
+    +List<AuthorDTO> findAll()
+    +Optional<AuthorDTO> findById(Long)
+    +AuthorDTO update(Long, AuthorDTO)
+    +Optional<AuthorDTO> findByEmail(String)
+    +AuthorDTO save(AuthorDTO)
+    +Optional<AuthorDTO> login(AuthorDTO)
+    +void deleteById(Long)
 }
 
-class StayListingDTO {
-    -id: Long
-    -authorId: Long
-    -date: LocalDate
-    -title: String
-    -featuredImage: String
-    -galleryImageUrls: List<String>
-    -reviewStart: Double
-    -reviewCount: Integer
-    -country: String
-    ...
-    +StayListingDTO()
+class AuthorServiceImpl {
+    -AuthorRepository authorRepository
+    -AuthorMapper authorMapper
+    -PasswordEncoder passwordEncoder
+    -JwtUtil jwtUtil
+    +List<AuthorDTO> findAll()
+    +Optional<AuthorDTO> findById(Long)
+    +AuthorDTO update(Long, AuthorDTO)
+    +Optional<AuthorDTO> findByEmail(String)
+    +AuthorDTO save(AuthorDTO)
+    +Optional<AuthorDTO> login(AuthorDTO)
+    +void deleteById(Long)
 }
 
-class StayListingController {
-    -stayListingService: StayListingService
-    +StayListingController(StayListingService)
-    +getAllStayListings(): ResponseEntity<List<StayListingDTO>>
-    +getStayListingById(Long): ResponseEntity<StayListingDTO>
-    +createStayListing(StayListingDTO): ResponseEntity<StayListingDTO>
-    +updateStayListing(Long, StayListingDTO): ResponseEntity<StayListingDTO>
-    +deleteStayListing(Long): ResponseEntity<Void>
-}
+AuthorServiceImpl .down.> AuthorService : implements
+AuthorServiceImpl --> AuthorRepository : uses
+AuthorServiceImpl --> AuthorMapper : uses
+AuthorServiceImpl --> PasswordEncoder : uses
+AuthorServiceImpl --> JwtUtil : uses
 
-StayListingServiceImpl -up-|> StayListingService : implements
-StayListingServiceImpl -right-> StayListingRepository : uses
-StayListing "1" -left- "*" StayListingRepository : stores
-StayListingServiceImpl -down-> StayListingMapper : uses
-StayListingDTO -right- StayListing : Data transfer for
-StayListingController -up-> StayListingService : Uses
+Author "1" *-down- "0..*" StayListing : contains
+Author o-up- AuthorDTO : data transfer object
 
 @enduml

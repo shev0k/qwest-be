@@ -7,6 +7,9 @@ import java.util.Optional;
 public interface AuthorService {
     List<AuthorDTO> findAll();
     Optional<AuthorDTO> findById(Long id);
+
+    AuthorDTO update(Long id, AuthorDTO authorDTO);
+
     Optional<AuthorDTO> findByEmail(String email);
 
     AuthorDTO save(AuthorDTO authorDTO);

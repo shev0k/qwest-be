@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +23,9 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @ExtendWith(MockitoExtension.class)
 class AuthorServiceTest {
@@ -51,14 +55,18 @@ class AuthorServiceTest {
         author.setFirstName("John");
         author.setLastName("Doe");
         author.setEmail("john.doe@example.com");
+        author.setPasswordHash("oldHashedPassword");
 
         authorDTO = new AuthorDTO();
         authorDTO.setId(1L);
         authorDTO.setFirstName("John");
         authorDTO.setLastName("Doe");
         authorDTO.setEmail("john.doe@example.com");
+        authorDTO.setPassword("newPassword");
 
         lenient().when(jwtUtil.generateToken(anyString())).thenReturn("mock-jwt-token");
+        lenient().when(passwordEncoder.encode("newPassword")).thenReturn("newHashedPassword");
+        lenient().when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(false);
     }
 
     @Test
@@ -310,6 +318,225 @@ class AuthorServiceTest {
 
         // Verify
         assertFalse(result.isPresent(), "Should return empty Optional");
+    }
+
+    @Test
+    void updateAuthor_Success_NoEmailChange() throws Exception {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setEmail("john.doe@example.com");
+
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setEmail("john.doe@example.com");
+        authorDTO.setFirstName("John");
+        authorDTO.setLastName("Doe");
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.save(any(Author.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+
+        AuthorDTO result = authorService.update(authorId, authorDTO);
+
+        // Validate the results
+        assertNull(result.getJwt(), "JWT should not be generated when the email hasn't changed.");
+        verify(authorRepository).save(any(Author.class));
+        verify(jwtUtil, never()).generateToken(anyString());
+    }
+
+    @Test
+    void updateAuthor_Success_EmailChange() throws Exception {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setEmail("old.email@example.com");
+
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setEmail("new.email@example.com");
+        authorDTO.setFirstName("John");
+        authorDTO.setLastName("Doe");
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.save(any(Author.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+        when(jwtUtil.generateToken("new.email@example.com")).thenReturn("newToken");
+
+        AuthorDTO result = authorService.update(authorId, authorDTO);
+
+        assertThat(result.getJwt(), is("newToken")); // Check JWT is generated
+        verify(authorRepository).save(any(Author.class)); // Ensure the author is saved
+        verify(jwtUtil).generateToken("new.email@example.com"); // Ensure JWT generation is called
+    }
+
+    @Test
+    void updateAuthor_NotFound() {
+        Long nonExistentAuthorId = 99L;
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setEmail("does.not.exist@example.com");
+
+        when(authorRepository.findById(nonExistentAuthorId)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalStateException.class, () -> {
+            authorService.update(nonExistentAuthorId, authorDTO);
+        });
+    }
+
+    @Test
+    @WithMockUser(username="admin", roles={"FOUNDER"})
+    void updateAuthor_Success_PasswordChange() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setEmail("old.email@example.com");
+        existingAuthor.setPasswordHash("oldHashedPassword");
+
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setEmail("new.email@example.com"); // Different to simulate change
+        authorDTO.setPassword("newPassword");
+
+        // Mock the findById to always return the existing author
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
+        when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(false);
+        when(passwordEncoder.encode("newPassword")).thenReturn("newHashedPassword");
+        when(authorMapper.toDto(any(Author.class))).thenReturn(new AuthorDTO());
+
+        AuthorDTO result = authorService.update(authorId, authorDTO);
+
+        // Assertions to ensure behavior is as expected
+        assertNotNull(result);
+        verify(passwordEncoder).encode("newPassword");
+        verify(authorRepository).save(existingAuthor);
+    }
+
+    @Test
+    void updateAuthorWithPasswordChangeConditionally() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setEmail("john.doe@example.com");
+        existingAuthor.setPasswordHash("oldHashedPassword");
+
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setPassword("newPassword");
+
+        // Mocking that the new password is different from the old hashed password
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(false);
+        when(passwordEncoder.encode("newPassword")).thenReturn("newHashedPassword");
+        when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
+        when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
+
+        // Act
+        AuthorDTO result = authorService.update(authorId, authorDTO);
+
+        // Assert
+        assertNotNull(result, "Resulting AuthorDTO should not be null.");
+        assertEquals("newHashedPassword", existingAuthor.getPasswordHash(), "Password hash should be updated to the new hashed password.");
+        verify(passwordEncoder).matches("newPassword", "oldHashedPassword");
+        verify(passwordEncoder).encode("newPassword");
+        verify(authorRepository).save(existingAuthor);
+    }
+    @Test
+    void updateAuthorEmptyPassword() {
+        // Setup
+        Long authorId = 1L;
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setPassword(""); // Testing with empty password
+
+        // Mocking the absence of the author in the repository
+        when(authorRepository.findById(authorId)).thenReturn(Optional.empty());
+
+        // Act and Assert
+        Exception exception = assertThrows(IllegalStateException.class, () -> {
+            authorService.update(authorId, authorDTO);
+        }, "Expected an IllegalStateException to be thrown if the author is not found");
+
+        assertEquals("Author not found with id " + authorId, exception.getMessage(), "Exception message should match expected not found message");
+
+        // Verify that no unwanted methods are called due to the absence of the author
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(authorRepository, never()).save(any(Author.class));
+    }
+
+    @Test
+    void updateAuthorWithoutPasswordChangeDueToMatch() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setEmail("john.doe@example.com");
+        existingAuthor.setPasswordHash("oldHashedPassword");
+
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setPassword("newPassword");
+
+        // Mocking that the new password is actually the same as the old one
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(true);
+        when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
+        when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
+
+        // Act
+        AuthorDTO result = authorService.update(authorId, authorDTO);
+
+        // Assert
+        assertNotNull(result, "Resulting AuthorDTO should not be null.");
+        assertEquals("oldHashedPassword", existingAuthor.getPasswordHash(), "Password hash should not change.");
+        verify(passwordEncoder).matches("newPassword", "oldHashedPassword");
+        verify(passwordEncoder, never()).encode("newPassword");
+        verify(authorRepository).save(existingAuthor);
+    }
+
+    @Test
+    void updateAuthorWithEmptyPasswordShouldNotUpdatePasswordHash() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setEmail("john.doe@example.com");
+        existingAuthor.setPasswordHash("existingHashedPassword");
+
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setPassword(""); // Empty password should not trigger update
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
+        when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
+
+        // Act
+        AuthorDTO result = authorService.update(authorId, authorDTO);
+
+        // Assert
+        assertNotNull(result, "Resulting AuthorDTO should not be null.");
+        assertEquals("existingHashedPassword", existingAuthor.getPasswordHash(), "Password hash should remain unchanged.");
+        verify(passwordEncoder, never()).encode("");
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(authorRepository).save(existingAuthor);
+    }
+
+    @Test
+    void updateAuthorWithNullPasswordShouldNotUpdatePasswordHash() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setEmail("john.doe@example.com");
+        existingAuthor.setPasswordHash("existingHashedPassword");
+
+        AuthorDTO authorDTO = new AuthorDTO();
+        authorDTO.setPassword(null); // Null password should not trigger update
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
+        when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
+
+        // Act
+        AuthorDTO result = authorService.update(authorId, authorDTO);
+
+        // Assert
+        assertNotNull(result, "Resulting AuthorDTO should not be null.");
+        assertEquals("existingHashedPassword", existingAuthor.getPasswordHash(), "Password hash should remain unchanged.");
+        verify(passwordEncoder, never()).encode(null);
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(authorRepository).save(existingAuthor);
     }
 
 
