@@ -1,7 +1,7 @@
 package com.qwest.backend.controller;
 
-import com.qwest.backend.DTO.AmenityDTO;
-import com.qwest.backend.service.AmenityService;
+import com.qwest.backend.dto.AmenityDTO;
+import com.qwest.backend.business.AmenityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

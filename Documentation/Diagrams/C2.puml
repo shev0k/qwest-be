@@ -15,8 +15,8 @@ System_Boundary(qwest, "QWEST Platform") {
     ContainerDb(database, "MySQL Database", "SQL", "Stores bookings, wishlists, reviews, user profiles, and travel content.")
 
     Rel(user, webApp, "Interacts via", "HTTP/HTTPS")
-    Rel(travelConsultant, springApp, "Manages through", "HTTP/HTTPS")
-    Rel(contentCreator, springApp, "Contributes content via", "HTTP/HTTPS")
+    Rel(travelConsultant, webApp, "Manages through", "HTTP/HTTPS")
+    Rel(contentCreator, webApp, "Contributes content via", "HTTP/HTTPS")
     Rel(webApp, springApp, "Communicates with", "API calls")
     Rel(springApp, database, "Reads from/Writes to")
 }

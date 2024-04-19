@@ -1,7 +1,7 @@
 package com.qwest.backend.controller;
 
-import com.qwest.backend.DTO.StayListingDTO;
-import com.qwest.backend.service.StayListingService;
+import com.qwest.backend.dto.StayListingDTO;
+import com.qwest.backend.business.StayListingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
