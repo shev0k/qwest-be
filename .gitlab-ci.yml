@@ -31,8 +31,8 @@ sonarqube-check:
   extends: .backend
   image: gradle:8.2.1-jdk17-jammy
   variables:
-    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
-    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"  # fetch all the branches of the project
   cache:
     key: "${CI_JOB_NAME}"
     paths:
@@ -53,6 +53,15 @@ deploy:
     - echo "Deploying application"
     - docker-compose down
     - docker-compose build
+    - |
+      echo "DB_USERNAME=$DB_USERNAME_STAGING" >> .env
+      echo "DB_PASSWORD=$DB_PASSWORD" >> .env
+      echo "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY" >> .env
+      echo "JWT_SECRET=$JWT_SECRET" >> .env
+      echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
+      echo "AWS_SECRET_KEY=$AWS_SECRET_KEY" >> .env
+      echo "AWS_REGION=$AWS_REGION" >> .env
+      echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> .env
     - docker-compose up -d
 
 after_script:
