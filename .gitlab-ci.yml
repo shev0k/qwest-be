@@ -41,7 +41,6 @@ sonarqube-check:
     - ./gradlew test sonar jacocoTestReport
   allow_failure: true
 
-# Deployment Stage
 deploy:
   stage: deploy
   extends: .backend
@@ -51,6 +50,7 @@ deploy:
     - build
   script:
     - echo "Deploying application"
+    - git clone https://git.fhict.nl/I499309/qwest-fe.git ../qwest-fe
     - |
       $envVars = @(
         "DB_USERNAME=$DB_USERNAME_STAGING",
