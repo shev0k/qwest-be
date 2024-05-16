@@ -1,29 +1,31 @@
 package com.qwest.backend.business;
 
-import com.qwest.backend.dto.AuthorDTO;
+import com.qwest.backend.business.impl.AuthorServiceImpl;
+import com.qwest.backend.configuration.exceptionhandler.FileNotFoundException;
+import com.qwest.backend.configuration.exceptionhandler.FileStorageException;
+import com.qwest.backend.configuration.security.token.JwtUtil;
 import com.qwest.backend.domain.Author;
 import com.qwest.backend.domain.util.AuthorRole;
-import com.qwest.backend.repository.mapper.AuthorMapper;
+import com.qwest.backend.dto.AuthorDTO;
 import com.qwest.backend.repository.AuthorRepository;
-import com.qwest.backend.business.impl.AuthorServiceImpl;
-import com.qwest.backend.configuration.security.token.JwtUtil;
+import com.qwest.backend.repository.mapper.AuthorMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -41,6 +43,9 @@ class AuthorServiceTest {
 
     @Mock
     private JwtUtil jwtUtil;
+
+    @Mock
+    private FileStorageService fileStorageService;
 
     @InjectMocks
     private AuthorServiceImpl authorService;
@@ -94,7 +99,6 @@ class AuthorServiceTest {
 
     @Test
     void saveAuthorTest() {
-        // Setup
         when(authorRepository.save(any(Author.class))).thenReturn(author);
         when(authorMapper.toEntity(any(AuthorDTO.class))).thenReturn(author);
         when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
@@ -113,7 +117,6 @@ class AuthorServiceTest {
         verify(authorRepository).save(any(Author.class));
         verify(jwtUtil).generateToken(authorDTO.getEmail());
     }
-
 
     @Test
     void deleteByIdTest() {
@@ -243,6 +246,7 @@ class AuthorServiceTest {
 
         verify(jwtUtil).generateToken(authorDTO.getEmail());
     }
+
     @Test
     void login_NoUserFound_ReturnsEmpty() {
         when(authorRepository.findByEmail(authorDTO.getEmail())).thenReturn(Optional.empty());
@@ -257,7 +261,6 @@ class AuthorServiceTest {
 
     @Test
     void findByEmail_UserFound_ReturnsAuthorDTO() {
-        // Setup
         Author author = new Author();
         author.setEmail("user@example.com");
         AuthorDTO expectedDto = new AuthorDTO();
@@ -266,44 +269,35 @@ class AuthorServiceTest {
         when(authorRepository.findByEmail("user@example.com")).thenReturn(Optional.of(author));
         when(authorMapper.toDto(author)).thenReturn(expectedDto);
 
-        // Execute
         Optional<AuthorDTO> result = authorService.findByEmail("user@example.com");
 
-        // Verify
         assertTrue(result.isPresent(), "AuthorDTO should be present");
         assertEquals("user@example.com", result.get().getEmail(), "Email should match");
     }
 
     @Test
     void findByEmail_UserNotFound_ReturnsEmpty() {
-        // Setup
         when(authorRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
 
-        // Execute
         Optional<AuthorDTO> result = authorService.findByEmail("user@example.com");
 
-        // Verify
         assertFalse(result.isPresent(), "Result should be empty");
     }
 
     @Test
     void login_UserNotFound_ReturnsEmpty() {
-        // Setup
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setEmail("user@example.com");
         authorDTO.setPassword("password");
         when(authorRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
 
-        // Execute
         Optional<AuthorDTO> result = authorService.login(authorDTO);
 
-        // Verify
         assertFalse(result.isPresent(), "Should return empty Optional");
     }
 
     @Test
     void login_PasswordMismatch_ReturnsEmpty() {
-        // Setup
         Author author = new Author();
         author.setEmail("user@example.com");
         author.setPasswordHash("hashedPassword");
@@ -313,15 +307,13 @@ class AuthorServiceTest {
         when(authorRepository.findByEmail("user@example.com")).thenReturn(Optional.of(author));
         when(passwordEncoder.matches("password", "hashedPassword")).thenReturn(false);
 
-        // Execute
         Optional<AuthorDTO> result = authorService.login(authorDTO);
 
-        // Verify
         assertFalse(result.isPresent(), "Should return empty Optional");
     }
 
     @Test
-    void updateAuthor_Success_NoEmailChange() throws Exception {
+    void updateAuthor_Success_NoEmailChange() {
         Long authorId = 1L;
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
@@ -338,14 +330,13 @@ class AuthorServiceTest {
 
         AuthorDTO result = authorService.update(authorId, authorDTO);
 
-        // Validate the results
         assertNull(result.getJwt(), "JWT should not be generated when the email hasn't changed.");
         verify(authorRepository).save(any(Author.class));
         verify(jwtUtil, never()).generateToken(anyString());
     }
 
     @Test
-    void updateAuthor_Success_EmailChange() throws Exception {
+    void updateAuthor_Success_EmailChange() {
         Long authorId = 1L;
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
@@ -363,9 +354,9 @@ class AuthorServiceTest {
 
         AuthorDTO result = authorService.update(authorId, authorDTO);
 
-        assertThat(result.getJwt(), is("newToken")); // Check JWT is generated
-        verify(authorRepository).save(any(Author.class)); // Ensure the author is saved
-        verify(jwtUtil).generateToken("new.email@example.com"); // Ensure JWT generation is called
+        assertThat(result.getJwt(), is("newToken"));
+        verify(authorRepository).save(any(Author.class));
+        verify(jwtUtil).generateToken("new.email@example.com");
     }
 
     @Test
@@ -382,7 +373,6 @@ class AuthorServiceTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
     void updateAuthor_Success_PasswordChange() {
         Long authorId = 1L;
         Author existingAuthor = new Author();
@@ -391,10 +381,9 @@ class AuthorServiceTest {
         existingAuthor.setPasswordHash("oldHashedPassword");
 
         AuthorDTO authorDTO = new AuthorDTO();
-        authorDTO.setEmail("new.email@example.com"); // Different to simulate change
+        authorDTO.setEmail("new.email@example.com");
         authorDTO.setPassword("newPassword");
 
-        // Mock the findById to always return the existing author
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(false);
@@ -403,7 +392,6 @@ class AuthorServiceTest {
 
         AuthorDTO result = authorService.update(authorId, authorDTO);
 
-        // Assertions to ensure behavior is as expected
         assertNotNull(result);
         verify(passwordEncoder).encode("newPassword");
         verify(authorRepository).save(existingAuthor);
@@ -420,41 +408,34 @@ class AuthorServiceTest {
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setPassword("newPassword");
 
-        // Mocking that the new password is different from the old hashed password
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
         when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(false);
         when(passwordEncoder.encode("newPassword")).thenReturn("newHashedPassword");
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
 
-        // Act
         AuthorDTO result = authorService.update(authorId, authorDTO);
 
-        // Assert
-        assertNotNull(result, "Resulting AuthorDTO should not be null.");
-        assertEquals("newHashedPassword", existingAuthor.getPasswordHash(), "Password hash should be updated to the new hashed password.");
+        assertNotNull(result);
+        assertEquals("newHashedPassword", existingAuthor.getPasswordHash());
         verify(passwordEncoder).matches("newPassword", "oldHashedPassword");
         verify(passwordEncoder).encode("newPassword");
         verify(authorRepository).save(existingAuthor);
     }
+
     @Test
     void updateAuthorEmptyPassword() {
-        // Setup
         Long authorId = 1L;
         AuthorDTO authorDTO = new AuthorDTO();
-        authorDTO.setPassword(""); // Testing with empty password
+        authorDTO.setPassword("");
 
-        // Mocking the absence of the author in the repository
         when(authorRepository.findById(authorId)).thenReturn(Optional.empty());
 
-        // Act and Assert
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             authorService.update(authorId, authorDTO);
-        }, "Expected an IllegalStateException to be thrown if the author is not found");
+        });
 
-        assertEquals("Author not found with id " + authorId, exception.getMessage(), "Exception message should match expected not found message");
-
-        // Verify that no unwanted methods are called due to the absence of the author
+        assertEquals("Author not found with id " + authorId, exception.getMessage());
         verify(passwordEncoder, never()).encode(anyString());
         verify(authorRepository, never()).save(any(Author.class));
     }
@@ -470,18 +451,15 @@ class AuthorServiceTest {
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setPassword("newPassword");
 
-        // Mocking that the new password is actually the same as the old one
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
         when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(true);
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
 
-        // Act
         AuthorDTO result = authorService.update(authorId, authorDTO);
 
-        // Assert
-        assertNotNull(result, "Resulting AuthorDTO should not be null.");
-        assertEquals("oldHashedPassword", existingAuthor.getPasswordHash(), "Password hash should not change.");
+        assertNotNull(result);
+        assertEquals("oldHashedPassword", existingAuthor.getPasswordHash());
         verify(passwordEncoder).matches("newPassword", "oldHashedPassword");
         verify(passwordEncoder, never()).encode("newPassword");
         verify(authorRepository).save(existingAuthor);
@@ -496,18 +474,16 @@ class AuthorServiceTest {
         existingAuthor.setPasswordHash("existingHashedPassword");
 
         AuthorDTO authorDTO = new AuthorDTO();
-        authorDTO.setPassword(""); // Empty password should not trigger update
+        authorDTO.setPassword("");
 
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
 
-        // Act
         AuthorDTO result = authorService.update(authorId, authorDTO);
 
-        // Assert
-        assertNotNull(result, "Resulting AuthorDTO should not be null.");
-        assertEquals("existingHashedPassword", existingAuthor.getPasswordHash(), "Password hash should remain unchanged.");
+        assertNotNull(result);
+        assertEquals("existingHashedPassword", existingAuthor.getPasswordHash());
         verify(passwordEncoder, never()).encode("");
         verify(passwordEncoder, never()).matches(anyString(), anyString());
         verify(authorRepository).save(existingAuthor);
@@ -522,22 +498,169 @@ class AuthorServiceTest {
         existingAuthor.setPasswordHash("existingHashedPassword");
 
         AuthorDTO authorDTO = new AuthorDTO();
-        authorDTO.setPassword(null); // Null password should not trigger update
+        authorDTO.setPassword(null);
 
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
 
-        // Act
         AuthorDTO result = authorService.update(authorId, authorDTO);
 
-        // Assert
-        assertNotNull(result, "Resulting AuthorDTO should not be null.");
-        assertEquals("existingHashedPassword", existingAuthor.getPasswordHash(), "Password hash should remain unchanged.");
+        assertNotNull(result);
+        assertEquals("existingHashedPassword", existingAuthor.getPasswordHash());
         verify(passwordEncoder, never()).encode(null);
         verify(passwordEncoder, never()).matches(anyString(), anyString());
         verify(authorRepository).save(existingAuthor);
     }
 
+    @Test
+    void updateAvatar_Success() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setAvatar("oldAvatarUrl");
+
+        MockMultipartFile newAvatarFile = new MockMultipartFile("file", "newAvatar.png", "image/png", "new avatar".getBytes());
+
+        String newAvatarUrl = "https://example.com/newAvatar.png";
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(fileStorageService.uploadFile(any(MultipartFile.class))).thenReturn(newAvatarUrl);
+        when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+
+        AuthorDTO result = authorService.updateAvatar(authorId, newAvatarFile);
+
+        assertNotNull(result);
+        assertEquals(newAvatarUrl, existingAuthor.getAvatar());
+        verify(fileStorageService).deleteFile("oldAvatarUrl");
+        verify(fileStorageService).uploadFile(newAvatarFile);
+        verify(authorRepository).save(existingAuthor);
+        verify(authorMapper).toDto(existingAuthor);
+    }
+
+    @Test
+    void updateAvatar_AuthorNotFound() {
+        Long nonExistentAuthorId = 99L;
+        MockMultipartFile avatarFile = new MockMultipartFile("file", "avatar.png", "image/png", "avatar".getBytes());
+
+        when(authorRepository.findById(nonExistentAuthorId)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(IllegalStateException.class, () -> {
+            authorService.updateAvatar(nonExistentAuthorId, avatarFile);
+        });
+
+        assertEquals("Author not found with id " + nonExistentAuthorId, exception.getMessage());
+        verify(authorRepository, never()).save(any(Author.class));
+        verify(fileStorageService, never()).uploadFile(any(MultipartFile.class));
+    }
+
+    @Test
+    void updateAvatar_EmptyOrNullFile() {
+        Long authorId = 1L;
+        MockMultipartFile emptyFile = new MockMultipartFile("file", new byte[0]);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            authorService.updateAvatar(authorId, emptyFile);
+        });
+
+        verify(fileStorageService, never()).uploadFile(any(MultipartFile.class));
+        verify(authorRepository, never()).save(any(Author.class));
+    }
+
+    @Test
+    void updateAvatar_FileStorageException() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        MockMultipartFile newAvatarFile = new MockMultipartFile("file", "newAvatar.png", "image/png", "new avatar".getBytes());
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(fileStorageService.uploadFile(any(MultipartFile.class))).thenThrow(new FileStorageException("Failed to upload"));
+
+        assertThrows(FileStorageException.class, () -> {
+            authorService.updateAvatar(authorId, newAvatarFile);
+        });
+
+        verify(authorRepository, never()).save(any(Author.class));
+    }
+
+    @Test
+    void updateAvatar_FileNotFoundException() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setAvatar("oldAvatarUrl");
+
+        MockMultipartFile newAvatarFile = new MockMultipartFile("file", "newAvatar.png", "image/png", "new avatar".getBytes());
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        doThrow(new FileNotFoundException("File not found")).when(fileStorageService).deleteFile(anyString());
+
+        Exception exception = assertThrows(FileNotFoundException.class, () -> {
+            authorService.updateAvatar(authorId, newAvatarFile);
+        });
+
+        assertEquals("File not found", exception.getMessage());
+        verify(authorRepository, never()).save(any(Author.class));
+        verify(fileStorageService).deleteFile("oldAvatarUrl");
+        verify(fileStorageService, never()).uploadFile(newAvatarFile);
+    }
+
+    @Test
+    void updateAvatar_FileIsNull() {
+        Long authorId = 1L;
+        MultipartFile avatarFile = null;
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            authorService.updateAvatar(authorId, avatarFile);
+        });
+
+        verify(fileStorageService, never()).uploadFile(any(MultipartFile.class));
+        verify(authorRepository, never()).save(any(Author.class));
+    }
+
+    @Test
+    void updateAvatar_FileIsEmpty() {
+        Long authorId = 1L;
+        MockMultipartFile emptyFile = new MockMultipartFile("file", new byte[0]);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            authorService.updateAvatar(authorId, emptyFile);
+        });
+
+        verify(fileStorageService, never()).uploadFile(any(MultipartFile.class));
+        verify(authorRepository, never()).save(any(Author.class));
+    }
+
+    @Test
+    void updateAvatar_ExistingAvatarIsEmpty() {
+        Long authorId = 1L;
+        Author existingAuthor = new Author();
+        existingAuthor.setId(authorId);
+        existingAuthor.setAvatar("");
+
+        MockMultipartFile newAvatarFile = new MockMultipartFile("file", "newAvatar.png", "image/png", "new avatar".getBytes());
+
+        String newAvatarUrl = "https://example.com/newAvatar.png";
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(fileStorageService.uploadFile(any(MultipartFile.class))).thenReturn(newAvatarUrl);
+        when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+
+        AuthorDTO result = authorService.updateAvatar(authorId, newAvatarFile);
+
+        assertNotNull(result);
+        assertEquals(newAvatarUrl, existingAuthor.getAvatar());
+        verify(fileStorageService, never()).deleteFile(anyString());
+        verify(fileStorageService).uploadFile(newAvatarFile);
+        verify(authorRepository).save(existingAuthor);
+        verify(authorMapper).toDto(existingAuthor);
+    }
 
 }

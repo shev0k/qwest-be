@@ -1,6 +1,8 @@
 package com.qwest.backend.business;
 
 import com.qwest.backend.dto.AuthorDTO;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -9,6 +11,8 @@ public interface AuthorService {
     Optional<AuthorDTO> findById(Long id);
 
     AuthorDTO update(Long id, AuthorDTO authorDTO);
+
+    AuthorDTO updateAvatar(Long id, MultipartFile avatarFile);
 
     Optional<AuthorDTO> findByEmail(String email);
 

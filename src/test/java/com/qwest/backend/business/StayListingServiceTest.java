@@ -1,16 +1,16 @@
 package com.qwest.backend.business;
 
-import com.qwest.backend.dto.StayListingDTO;
+import com.qwest.backend.business.impl.StayListingServiceImpl;
+import com.qwest.backend.domain.Amenity;
 import com.qwest.backend.domain.Author;
 import com.qwest.backend.domain.StayListing;
-import com.qwest.backend.domain.geocoding.GeocodingService;
-import com.qwest.backend.domain.geocoding.LatLng;
-import com.qwest.backend.domain.Amenity;
-import com.qwest.backend.repository.mapper.StayListingMapper;
+import com.qwest.backend.domain.util.BookingCalendar;
+import com.qwest.backend.domain.util.GalleryImage;
+import com.qwest.backend.dto.StayListingDTO;
 import com.qwest.backend.repository.AmenityRepository;
 import com.qwest.backend.repository.AuthorRepository;
 import com.qwest.backend.repository.StayListingRepository;
-import com.qwest.backend.business.impl.StayListingServiceImpl;
+import com.qwest.backend.repository.mapper.StayListingMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,9 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 class StayListingServiceTest {
@@ -33,12 +33,12 @@ class StayListingServiceTest {
 
     @Mock
     private StayListingMapper stayListingMapper;
+
     @Mock
     private AuthorRepository authorRepository;
+
     @Mock
     private AmenityRepository amenityRepository;
-    @Mock
-    private GeocodingService geocodingService;
 
     @InjectMocks
     private StayListingServiceImpl stayListingService;
@@ -87,9 +87,6 @@ class StayListingServiceTest {
         mockAuthor.setId(stayListingDTO.getAuthorId());
         when(authorRepository.findById(stayListingDTO.getAuthorId())).thenReturn(Optional.of(mockAuthor));
 
-        LatLng mockLatLng = new LatLng(1.0, 1.0);
-        when(geocodingService.getLatLngForAddress(anyString())).thenReturn(mockLatLng);
-
         Amenity mockAmenity = new Amenity();
         mockAmenity.setId(1L);
         when(amenityRepository.findAllById(stayListingDTO.getAmenityIds()))
@@ -111,7 +108,6 @@ class StayListingServiceTest {
         assertEquals(stayListingDTO.getTitle(), saved.getTitle());
 
         verify(authorRepository).findById(stayListingDTO.getAuthorId());
-        verify(geocodingService).getLatLngForAddress(anyString());
         verify(amenityRepository).findAllById(stayListingDTO.getAmenityIds());
         verify(stayListingRepository).save(any(StayListing.class));
         verify(stayListingMapper).toDto(any(StayListing.class));
@@ -126,9 +122,6 @@ class StayListingServiceTest {
         Author mockAuthor = new Author();
         mockAuthor.setId(stayListingDTO.getAuthorId());
         when(authorRepository.findById(stayListingDTO.getAuthorId())).thenReturn(Optional.of(mockAuthor));
-
-        LatLng mockLatLng = new LatLng(1.0, 1.0);
-        when(geocodingService.getLatLngForAddress(anyString())).thenReturn(mockLatLng);
 
         when(stayListingMapper.toEntity(any(StayListingDTO.class))).thenReturn(stayListing);
         when(stayListingRepository.save(any(StayListing.class))).thenReturn(stayListing);
@@ -152,8 +145,22 @@ class StayListingServiceTest {
         mockAuthor.setId(stayListingDTO.getAuthorId());
         when(authorRepository.findById(stayListingDTO.getAuthorId())).thenReturn(Optional.of(mockAuthor));
 
-        LatLng mockLatLng = new LatLng(1.0, 1.0);
-        when(geocodingService.getLatLngForAddress(anyString())).thenReturn(mockLatLng);
+        when(stayListingMapper.toEntity(any(StayListingDTO.class))).thenReturn(stayListing);
+        when(stayListingRepository.save(any(StayListing.class))).thenReturn(stayListing);
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        StayListingDTO saved = stayListingService.save(stayListingDTO);
+
+        assertNotNull(saved);
+        assertEquals(stayListingDTO.getTitle(), saved.getTitle());
+        verify(amenityRepository, never()).findAllById(any());
+        verify(stayListingRepository).save(stayListing);
+    }
+
+    @Test
+    void saveStayListingTest_GalleryImagesNull() {
+        stayListingDTO.setGalleryImageUrls(null);
+        stayListingDTO.setAvailableDates(Collections.singletonList(LocalDate.now()));
 
         when(stayListingMapper.toEntity(any(StayListingDTO.class))).thenReturn(stayListing);
         when(stayListingRepository.save(any(StayListing.class))).thenReturn(stayListing);
@@ -163,11 +170,26 @@ class StayListingServiceTest {
 
         assertNotNull(saved);
         assertEquals(stayListingDTO.getTitle(), saved.getTitle());
-        verify(amenityRepository, never()).findAllById(any()); // Ensuring that no call is made to findAllById
+        assertNull(saved.getGalleryImageUrls());
         verify(stayListingRepository).save(stayListing);
     }
 
+    @Test
+    void saveStayListingTest_AvailableDatesNull() {
+        stayListingDTO.setGalleryImageUrls(Arrays.asList("https://example.com/image1.jpg", "https://example.com/image2.jpg"));
+        stayListingDTO.setAvailableDates(null);
 
+        when(stayListingMapper.toEntity(any(StayListingDTO.class))).thenReturn(stayListing);
+        when(stayListingRepository.save(any(StayListing.class))).thenReturn(stayListing);
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        StayListingDTO saved = stayListingService.save(stayListingDTO);
+
+        assertNotNull(saved);
+        assertEquals(stayListingDTO.getTitle(), saved.getTitle());
+        assertNull(saved.getAvailableDates());
+        verify(stayListingRepository).save(stayListing);
+    }
 
     @Test
     void deleteByIdTest() {

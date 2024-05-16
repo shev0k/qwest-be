@@ -54,8 +54,8 @@ public interface StayListingMapper {
 
     @Named("amenitiesToNames")
     static Set<String> amenitiesToNames(Set<Amenity> amenities) {
-        return amenities.stream()
+        return amenities != null ? amenities.stream()
                 .map(Amenity::getName)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toSet()) : null;
     }
 }

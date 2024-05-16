@@ -2,8 +2,6 @@ package com.qwest.backend.business.impl;
 
 import com.qwest.backend.domain.StayListing;
 import com.qwest.backend.dto.StayListingDTO;
-import com.qwest.backend.domain.geocoding.GeocodingService;
-import com.qwest.backend.domain.geocoding.LatLng;
 import com.qwest.backend.domain.Amenity;
 import com.qwest.backend.domain.util.BookingCalendar;
 import com.qwest.backend.domain.util.GalleryImage;
@@ -28,19 +26,17 @@ public class StayListingServiceImpl implements StayListingService {
     private final AuthorRepository authorRepository;
     private final AmenityRepository amenityRepository;
     private final StayListingMapper stayListingMapper;
-    private final GeocodingService geocodingService;
+
 
     @Autowired
     public StayListingServiceImpl(StayListingRepository stayListingRepository,
                                   AuthorRepository authorRepository,
                                   AmenityRepository amenityRepository,
-                                  StayListingMapper stayListingMapper,
-                                  GeocodingService geocodingService) {
+                                  StayListingMapper stayListingMapper) {
         this.stayListingRepository = stayListingRepository;
         this.authorRepository = authorRepository;
         this.amenityRepository = amenityRepository;
         this.stayListingMapper = stayListingMapper;
-        this.geocodingService = geocodingService;
     }
 
     @Override
@@ -65,11 +61,8 @@ public class StayListingServiceImpl implements StayListingService {
         // Set the author
         authorRepository.findById(stayListingDTO.getAuthorId()).ifPresent(stayListing::setAuthor);
 
-        // Fetch geolocation
-        String fullAddress = String.format("%s, %s, %s, %s, %s", stayListing.getStreet(), stayListing.getCity(), stayListing.getState(), stayListing.getPostalCode(), stayListing.getCountry());
-        LatLng latLng = geocodingService.getLatLngForAddress(fullAddress);
-        stayListing.setLat(latLng.getLatitude());
-        stayListing.setLng(latLng.getLongitude());
+        stayListing.setLat(stayListingDTO.getLat());
+        stayListing.setLng(stayListingDTO.getLng());
 
         // Handle amenities association
         if (stayListingDTO.getAmenityIds() != null && !stayListingDTO.getAmenityIds().isEmpty()) {
@@ -78,24 +71,26 @@ public class StayListingServiceImpl implements StayListingService {
         }
 
         // Gallery images handling
-        List<GalleryImage> galleryImages = stayListingDTO.getGalleryImageUrls().stream()
-                .map(url -> {
-                    GalleryImage galleryImage = new GalleryImage();
-                    galleryImage.setImageUrl(url);
-                    galleryImage.setStayListing(stayListing);
-                    return galleryImage;
-                }).toList();
+        List<GalleryImage> galleryImages = stayListingDTO.getGalleryImageUrls() != null ?
+                stayListingDTO.getGalleryImageUrls().stream()
+                        .map(url -> {
+                            GalleryImage galleryImage = new GalleryImage();
+                            galleryImage.setImageUrl(url);
+                            galleryImage.setStayListing(stayListing);
+                            return galleryImage;
+                        }).toList() : null;
         stayListing.setGalleryImages(galleryImages);
 
         // Booking Calendar handling
-        List<BookingCalendar> bookingCalendars = stayListingDTO.getAvailableDates().stream()
-                .map(date -> {
-                    BookingCalendar bookingCalendar = new BookingCalendar();
-                    bookingCalendar.setDate(date);
-                    bookingCalendar.setIsAvailable(true);
-                    bookingCalendar.setStayListing(stayListing);
-                    return bookingCalendar;
-                }).toList();
+        List<BookingCalendar> bookingCalendars = stayListingDTO.getAvailableDates() != null ?
+                stayListingDTO.getAvailableDates().stream()
+                        .map(date -> {
+                            BookingCalendar bookingCalendar = new BookingCalendar();
+                            bookingCalendar.setDate(date);
+                            bookingCalendar.setIsAvailable(true);
+                            bookingCalendar.setStayListing(stayListing);
+                            return bookingCalendar;
+                        }).toList() : null;
         stayListing.setBookingCalendar(bookingCalendars);
 
         StayListing savedListing = stayListingRepository.save(stayListing);

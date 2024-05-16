@@ -7,6 +7,8 @@ import com.qwest.backend.domain.util.AuthorRole;
 import com.qwest.backend.repository.mapper.AuthorMapper;
 import com.qwest.backend.repository.AuthorRepository;
 import com.qwest.backend.business.AuthorService;
+import com.qwest.backend.business.FileStorageService;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,16 +18,22 @@ import java.util.Optional;
 @Service
 public class AuthorServiceImpl implements AuthorService {
 
+    private static final String AUTHOR_NOT_FOUND_MSG = "Author not found with id ";
+
     private final AuthorRepository authorRepository;
     private final AuthorMapper authorMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final FileStorageService fileStorageService;
 
-    public AuthorServiceImpl(AuthorRepository authorRepository, AuthorMapper authorMapper, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthorServiceImpl(AuthorRepository authorRepository, AuthorMapper authorMapper,
+                             PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
+                             FileStorageService fileStorageService) {
         this.authorRepository = authorRepository;
         this.authorMapper = authorMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -35,12 +43,12 @@ public class AuthorServiceImpl implements AuthorService {
                 .toList();
     }
 
+    @Override
     public Optional<AuthorDTO> findById(Long id) {
         return Optional.ofNullable(authorRepository.findById(id)
                 .map(authorMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Author not found with id " + id)));
+                .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MSG + id)));
     }
-
 
     @Override
     public AuthorDTO save(AuthorDTO authorDTO) {
@@ -62,7 +70,7 @@ public class AuthorServiceImpl implements AuthorService {
                     }
                     return responseDto;
                 })
-                .orElseThrow(() -> new IllegalStateException("Author not found with id " + id));
+                .orElseThrow(() -> new IllegalStateException(AUTHOR_NOT_FOUND_MSG + id));
     }
 
     private Author prepareAuthorEntity(AuthorDTO authorDTO) {
@@ -110,6 +118,25 @@ public class AuthorServiceImpl implements AuthorService {
                     dto.setJwt(jwtUtil.generateToken(dto.getEmail()));
                     return dto;
                 });
+    }
+
+    @Override
+    public AuthorDTO updateAvatar(Long id, MultipartFile avatarFile) {
+        return authorRepository.findById(id)
+                .map(existingAuthor -> {
+                    if (avatarFile != null && !avatarFile.isEmpty()) {
+                        if (existingAuthor.getAvatar() != null && !existingAuthor.getAvatar().isEmpty()) {
+                            fileStorageService.deleteFile(existingAuthor.getAvatar());
+                        }
+                        String avatarUrl = fileStorageService.uploadFile(avatarFile);
+                        existingAuthor.setAvatar(avatarUrl);
+                        existingAuthor = authorRepository.save(existingAuthor);
+                        return authorMapper.toDto(existingAuthor);
+                    } else {
+                        throw new IllegalArgumentException("Empty or null avatar file");
+                    }
+                })
+                .orElseThrow(() -> new IllegalStateException(AUTHOR_NOT_FOUND_MSG + id));
     }
 
     @Override
