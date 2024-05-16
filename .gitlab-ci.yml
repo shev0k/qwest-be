@@ -50,8 +50,16 @@ deploy:
     - build
   script:
     - echo "Deploying application"
+    - echo "DB_USERNAME=$DB_USERNAME_STAGING"
+    - echo "DB_PASSWORD=$DB_PASSWORD"
+    - echo "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY"
+    - echo "JWT_SECRET=$JWT_SECRET"
+    - echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+    - echo "AWS_SECRET_KEY=$AWS_SECRET_KEY"
+    - echo "AWS_REGION=$AWS_REGION"
+    - echo "S3_BUCKET_NAME=$S3_BUCKET_NAME"
     - |
-      $envVars = @(
+      envVars=(
         "DB_USERNAME=$DB_USERNAME_STAGING",
         "DB_PASSWORD=$DB_PASSWORD",
         "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY",
@@ -61,7 +69,7 @@ deploy:
         "AWS_REGION=$AWS_REGION",
         "S3_BUCKET_NAME=$S3_BUCKET_NAME"
       )
-      $envVars | Out-File -FilePath .env -Encoding utf8
+      printf "%s\n" "${envVars[@]}" > .env
     - docker-compose down
     - docker-compose build
     - docker-compose up -d
