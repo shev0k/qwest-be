@@ -16,15 +16,6 @@ services:
     networks:
       - qwest-network
 
-  frontend:
-    build:
-      context: ../qwest-fe
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    networks:
-      - qwest-network
-
   qwest-staging-db:
     image: mysql:latest
     environment:

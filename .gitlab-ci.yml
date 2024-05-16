@@ -1,6 +1,5 @@
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-  CI_GITLAB_TOKEN: "$CI_GITLAB_TOKEN"  # Ensure the token is accessible as an environment variable
 
 stages:
   - build
@@ -51,7 +50,6 @@ deploy:
     - build
   script:
     - echo "Deploying application"
-    - git clone --depth 1 https://$CI_GITLAB_TOKEN@git.fhict.nl/I499309/qwest-fe.git ../qwest-fe
     - |
       $envVars = @(
         "DB_USERNAME=$DB_USERNAME_STAGING",
