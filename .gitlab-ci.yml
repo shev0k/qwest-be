@@ -52,22 +52,17 @@ deploy:
   script:
     - echo "Deploying application"
     - |
-      echo -n "DB_USERNAME=" > .env
-      echo $DB_USERNAME_STAGING >> .env
-      echo -n "DB_PASSWORD=" >> .env
-      echo $DB_PASSWORD >> .env
-      echo -n "GOOGLE_MAPS_API_KEY=" >> .env
-      echo $GOOGLE_MAPS_API_KEY >> .env
-      echo -n "JWT_SECRET=" >> .env
-      echo $JWT_SECRET >> .env
-      echo -n "AWS_ACCESS_KEY_ID=" >> .env
-      echo $AWS_ACCESS_KEY_ID >> .env
-      echo -n "AWS_SECRET_KEY=" >> .env
-      echo $AWS_SECRET_KEY >> .env
-      echo -n "AWS_REGION=" >> .env
-      echo $AWS_REGION >> .env
-      echo -n "S3_BUCKET_NAME=" >> .env
-      echo $S3_BUCKET_NAME >> .env
+      $envVars = @(
+        "DB_USERNAME=$DB_USERNAME_STAGING",
+        "DB_PASSWORD=$DB_PASSWORD",
+        "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY",
+        "JWT_SECRET=$JWT_SECRET",
+        "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_KEY=$AWS_SECRET_KEY",
+        "AWS_REGION=$AWS_REGION",
+        "S3_BUCKET_NAME=$S3_BUCKET_NAME"
+      )
+      $envVars | Out-File -FilePath .env -Encoding utf8
     - docker-compose down
     - docker-compose build
     - docker-compose up -d
