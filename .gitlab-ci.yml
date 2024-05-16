@@ -51,7 +51,7 @@ deploy:
     - build
   script:
     - echo "Deploying application"
-    - git clone https://$CI_GITLAB_TOKEN@git.fhict.nl/I499309/qwest-fe.git ../qwest-fe
+    - git clone --depth 1 https://$CI_GITLAB_TOKEN@git.fhict.nl/I499309/qwest-fe.git ../qwest-fe
     - |
       $envVars = @(
         "DB_USERNAME=$DB_USERNAME_STAGING",
