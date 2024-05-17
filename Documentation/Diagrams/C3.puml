@@ -1,37 +1,48 @@
 @startuml
-!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
 title Component Diagram for QWEST
 
+Container(frontend, "Web Application", "React", "Provides the user interface for interacting with the QWEST platform.")
+
 Container_Boundary(api, "Spring Boot Backend") {
-    Component(authorController, "Author Controller", "Java Spring Rest Controller", "Manages author profiles and their contributions.")
-    Component(amenityController, "Amenity Controller", "Java Spring Rest Controller", "Handles amenities listing and management.")
-    Component(stayListingController, "Stay Listing Controller", "Java Spring Rest Controller", "Manages stay listings.")
+    Component(authorController, "Author Controller", "Spring MVC Rest Controller", "RESTful API endpoints for author operations.")
+    Component(amenityController, "Amenity Controller", "Spring MVC Rest Controller", "RESTful API endpoints for amenity operations.")
+    Component(stayListingController, "Stay Listing Controller", "Spring MVC Rest Controller", "RESTful API endpoints for stay listing operations.")
+    Component(imageUploadController, "Image Upload Controller", "Spring MVC Rest Controller", "Handles image uploads and deletions.")
 
-    Component(authorService, "Author Service", "Java Spring Service", "Implements business logic for author profile management.")
-    Component(amenityService, "Amenity Service", "Java Spring Service", "Implements business logic for amenities management.")
-    Component(stayListingService, "Stay Listing Service", "Java Spring Service", "Implements business logic for stay listings management.")
+    Component(authorService, "Author Service", "Spring Service", "Handles operations related to authors.")
+    Component(amenityService, "Amenity Service", "Spring Service", "Handles operations related to amenities.")
+    Component(stayListingService, "Stay Listing Service", "Spring Service", "Handles operations related to stay listings.")
+    Component(fileStorageService, "File Storage Service", "Spring Service", "Manages file storage operations.")
 
-    Component(authorRepo, "Author Repository", "JPA Repository", "Interfaces with the database for author data persistence.")
-    Component(amenityRepo, "Amenity Repository", "JPA Repository", "Interfaces with the database for amenities data persistence.")
-    Component(stayListingRepo, "Stay Listing Repository", "JPA Repository", "Interfaces with the database for stay listings data persistence.")
-
-    ContainerDb(database, "MySQL Database", "SQL Database", "Stores all persistent data for the platform.")
+    ComponentDb(authorRepository, "Author Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
+    ComponentDb(amenityRepository, "Amenity Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
+    ComponentDb(stayListingRepository, "Stay Listing Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
 
     Rel(authorController, authorService, "Uses")
     Rel(amenityController, amenityService, "Uses")
     Rel(stayListingController, stayListingService, "Uses")
+    Rel(imageUploadController, fileStorageService, "Uses")
 
-    Rel(authorService, authorRepo, "Interacts with")
-    Rel(amenityService, amenityRepo, "Interacts with")
-    Rel(stayListingService, stayListingRepo, "Interacts with")
-
-    Rel(authorRepo, database, "Reads from/Writes to")
-    Rel(amenityRepo, database, "Reads from/Writes to")
-    Rel(stayListingRepo, database, "Reads from/Writes to")
-
-    System_Ext(travelAPIs, "Travel APIs", "Provides real-time data on accommodations, flights, etc.")
-    Rel(database, travelAPIs, "Fetches data from")
+    Rel(authorService, authorRepository, "Reads from and writes to")
+    Rel(amenityService, amenityRepository, "Reads from and writes to")
+    Rel(stayListingService, stayListingRepository, "Reads from and writes to")
+    Rel(stayListingService, fileStorageService, "Uses")
+    Rel(authorService, fileStorageService, "Uses")
 }
 
+ContainerDb(database, "Database", "MySQL", "Stores all the platform's data.")
+
+Rel(frontend, authorController, "Makes API calls to")
+Rel(frontend, amenityController, "Makes API calls to")
+Rel(frontend, stayListingController, "Makes API calls to")
+Rel(frontend, imageUploadController, "Makes API calls to")
+
+Rel(authorRepository, database, "Reads from and writes to")
+Rel(amenityRepository, database, "Reads from and writes to")
+Rel(stayListingRepository, database, "Reads from and writes to")
+
+System_Ext(s3AmazonAPI, "Amazon S3 API", "Provides file storage services.")
+Rel(fileStorageService, s3AmazonAPI, "Uploads to/Deletes from")
 @enduml

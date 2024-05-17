@@ -1,0 +1,41 @@
+@startuml ImageUploadManagement
+
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+skinparam linetype ortho
+
+title Image Upload Management Component Diagram for QWEST
+
+package "Controllers" {
+    class ImageUploadController {
+        +uploadImage(MultipartFile) : ResponseEntity<String>
+        +deleteImage(String) : ResponseEntity<String>
+        +uploadMultipleImages(List<MultipartFile>) : ResponseEntity<List<String>>
+    }
+}
+
+package "Services" {
+    interface FileStorageService {
+        +uploadFile(MultipartFile) : String
+        +deleteFile(String) : void
+    }
+
+    class S3FileStorageServiceImpl {
+        -AmazonS3 s3Client
+    }
+}
+
+package "External Systems" {
+    interface AmazonS3 {
+        +putObject(PutObjectRequest) : PutObjectResult
+        +deleteObject(DeleteObjectRequest) : void
+        +getUrl(String, String) : URL
+    }
+}
+
+together {
+    ImageUploadController --> FileStorageService : uses
+    S3FileStorageServiceImpl --> AmazonS3 : uses
+}
+
+@enduml

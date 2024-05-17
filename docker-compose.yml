@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   backend:
     build:
@@ -8,17 +9,10 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: staging
+    env_file:
+      - .env
     depends_on:
       - qwest-staging-db
-    networks:
-      - qwest-network
-
-  frontend:
-    build:
-      context: ../qwest-fe
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
     networks:
       - qwest-network
 

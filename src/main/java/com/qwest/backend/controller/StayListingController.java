@@ -8,7 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
 import java.util.List;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -36,22 +39,25 @@ public class StayListingController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST')")
     public ResponseEntity<StayListingDTO> createStayListing(@Valid @RequestBody StayListingDTO stayListingDTO) {
         StayListingDTO savedListing = stayListingService.save(stayListingDTO);
         return new ResponseEntity<>(savedListing, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST')")
     public ResponseEntity<StayListingDTO> updateStayListing(@PathVariable Long id, @Valid @RequestBody StayListingDTO stayListingDTO) {
         if (stayListingService.findById(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        stayListingDTO.setId(id); // Ensure the DTO has the correct ID
+        stayListingDTO.setId(id);
         StayListingDTO updatedListing = stayListingService.save(stayListingDTO);
         return ResponseEntity.ok(updatedListing);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST')")
     public ResponseEntity<Void> deleteStayListing(@PathVariable Long id) {
         if (stayListingService.findById(id).isEmpty()) {
             return ResponseEntity.notFound().build();

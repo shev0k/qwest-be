@@ -56,7 +56,9 @@ public class StayListing {
     // Check-in / Check-out hours
     private String checkInHours;
     private String checkOutHours;
-    private String specialRestrictions;
+
+    @ElementCollection
+    private List<String> specialRestrictions;
 
     // Accommodation Description
     private String accommodationDescription;

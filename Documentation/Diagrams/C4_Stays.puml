@@ -1,0 +1,128 @@
+@startuml StayListingManagement
+
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+skinparam linetype ortho
+
+title Stay Listing Management Component Diagram for QWEST
+
+package "Domain Models" {
+    class StayListing {
+        -Long id
+        -Author author
+        -LocalDate date
+        -String title
+        -String featuredImage
+        -List<GalleryImage> galleryImages
+        -Double reviewStart
+        -Integer reviewCount
+        -String country
+        -String street
+        -String roomNumber
+        -String city
+        -String state
+        -String postalCode
+        -PropertyType propertyType
+        -RentalFormType rentalFormType
+        -Double acreage
+        -Integer maxGuests
+        -Integer bedrooms
+        -Integer beds
+        -Integer bathrooms
+        -Integer kitchens
+        -String checkInHours
+        -String checkOutHours
+        -List<String> specialRestrictions
+        -String accommodationDescription
+        -Double weekdayPrice
+        -Double weekendPrice
+        -Double longTermStayDiscount
+        -Integer minimumNights
+        -Integer maximumNights
+        -Double lat
+        -Double lng
+        -Set<Amenity> amenities
+        -List<BookingCalendar> bookingCalendar
+    }
+
+    class GalleryImage {
+        -Long id
+        -String imageUrl
+        -StayListing stayListing
+    }
+
+    class BookingCalendar {
+        -Long id
+        -LocalDate date
+        -Boolean isAvailable
+        -StayListing stayListing
+    }
+
+    enum PropertyType {
+        APARTMENT, HOTEL, CONDO, CABIN, TOWNHOUSE, PENTHOUSE, COTTAGE, BUNGALOW, LOFT
+    }
+
+    enum RentalFormType {
+        ENTIRE_PLACE, PRIVATE_ROOM, HOTEL_ROOM, SHARED_ROOM
+    }
+}
+
+package "Controllers" {
+    class StayListingController {
+        +getAllStayListings() : ResponseEntity<List<StayListingDTO>>
+        +getStayListingById(Long) : ResponseEntity<?>
+        +createStayListing(StayListingDTO) : ResponseEntity<StayListingDTO>
+        +updateStayListing(Long, StayListingDTO) : ResponseEntity<StayListingDTO>
+        +deleteStayListing(Long) : ResponseEntity<Void>
+    }
+}
+
+package "Services" {
+    interface StayListingService {
+        +findAllDto() : List<StayListingDTO>
+        +findById(Long) : Optional<StayListingDTO>
+        +save(StayListingDTO) : StayListingDTO
+        +deleteById(Long) : void
+    }
+
+    class StayListingServiceImpl {
+        -StayListingRepository stayListingRepository
+        -AuthorRepository authorRepository
+        -AmenityRepository amenityRepository
+        -StayListingMapper stayListingMapper
+    }
+}
+
+package "Repositories" {
+    interface StayListingRepository {
+        +findAll() : List<StayListing>
+        +findById(Long) : Optional<StayListing>
+        +deleteById(Long) : void
+    }
+
+    interface AuthorRepository {
+        +findById(Long) : Optional<Author>
+    }
+
+    interface AmenityRepository {
+        +findAll() : List<Amenity>
+        +findById(Long) : Optional<Amenity>
+    }
+}
+
+package "External Systems" {
+    interface FileStorageService {
+        +uploadFile(MultipartFile) : String
+        +deleteFile(String) : void
+    }
+}
+
+together {
+    StayListingController --> StayListingService : uses
+    StayListingServiceImpl --> StayListingRepository : uses
+    StayListingServiceImpl --> AuthorRepository : uses
+    StayListingServiceImpl --> AmenityRepository : uses
+    StayListingServiceImpl --> StayListingMapper : uses
+}
+
+@enduml

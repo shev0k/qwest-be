@@ -2,6 +2,7 @@ package com.qwest.backend.controller;
 
 import com.qwest.backend.dto.AuthorDTO;
 import com.qwest.backend.business.AuthorService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -26,6 +30,7 @@ public class AuthorController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
     public ResponseEntity<List<AuthorDTO>> getAllAuthors() {
         return ResponseEntity.ok(authorService.findAll());
     }
@@ -43,6 +48,7 @@ public class AuthorController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
     public ResponseEntity<AuthorDTO> updateAuthor(@PathVariable Long id, @Valid @RequestBody AuthorDTO authorDTO) {
         authorDTO.setId(id);
         AuthorDTO updatedAuthor = authorService.update(id, authorDTO);
@@ -52,7 +58,27 @@ public class AuthorController {
         return ResponseEntity.ok(updatedAuthor);
     }
 
+    @PutMapping(value = "/{id}/avatar", consumes = {"multipart/form-data"})
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    public ResponseEntity<AuthorDTO> updateAuthorAvatar(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File upload request must contain a file.");
+        }
+
+        try {
+            AuthorDTO updatedAuthor = authorService.updateAvatar(id, file);
+            return ResponseEntity.ok(updatedAuthor);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (IllegalStateException | EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
     public ResponseEntity<Void> deleteAuthor(@PathVariable Long id) {
         if (authorService.findById(id).isPresent()) {
             authorService.deleteById(id);
@@ -68,4 +94,3 @@ public class AuthorController {
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 }
-

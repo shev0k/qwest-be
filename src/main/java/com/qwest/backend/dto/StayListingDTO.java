@@ -42,7 +42,8 @@ public class StayListingDTO {
     // Check-in / Check-out hours and special restrictions
     private String checkInHours;
     private String checkOutHours;
-    private String specialRestrictions;
+
+    private List<String> specialRestrictions;
 
     // Accommodation Description
     private String accommodationDescription;
