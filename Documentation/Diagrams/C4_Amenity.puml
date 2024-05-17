@@ -1,0 +1,56 @@
+@startuml AmenityManagement
+
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+skinparam linetype ortho
+
+title Amenity Management Component Diagram for QWEST
+
+package "Domain Models" {
+    class Amenity {
+        -Long id
+        -String name
+        -AmenityCategory category
+    }
+
+    enum AmenityCategory {
+        GENERAL_AMENITIES, ROOM_FEATURES, KITCHEN_DINING, BATHROOM_AMENITIES, LEISURE_RECREATION, ADDITIONAL_SERVICES, ENTERTAINMENT_OTHERS
+    }
+}
+
+package "Controllers" {
+    class AmenityController {
+        +createAmenity(AmenityDTO) : ResponseEntity<AmenityDTO>
+        +getAllAmenities() : ResponseEntity<List<AmenityDTO>>
+        +deleteAmenity(Long) : ResponseEntity<Void>
+    }
+}
+
+package "Services" {
+    interface AmenityService {
+        +createAmenity(AmenityDTO) : AmenityDTO
+        +deleteAmenity(Long) : void
+        +getAllAmenities() : List<AmenityDTO>
+    }
+
+    class AmenityServiceImpl {
+        -AmenityRepository amenityRepository
+        -AmenityMapper amenityMapper
+    }
+}
+
+package "Repositories" {
+    interface AmenityRepository {
+        +findAll() : List<Amenity>
+        +findById(Long) : Optional<Amenity>
+        +deleteById(Long) : void
+    }
+}
+
+together {
+    AmenityController --> AmenityService : uses
+    AmenityServiceImpl --> AmenityRepository : uses
+    AmenityServiceImpl --> AmenityMapper : uses
+}
+
+@enduml

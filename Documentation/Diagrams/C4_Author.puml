@@ -1,0 +1,87 @@
+@startuml AuthorManagement
+
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+skinparam linetype ortho
+
+title Author Management Component Diagram for QWEST
+
+package "Domain Models" {
+    class Author {
+        -Long id
+        -String email
+        -String firstName
+        -String lastName
+        -String username
+        -String avatar
+        -String country
+        -String phoneNumber
+        -String description
+        -String passwordHash
+        -AuthorRole role
+        -Set<StayListing> stayListings
+    }
+
+    enum AuthorRole {
+        TRAVELER, HOST, FOUNDER
+    }
+}
+
+package "Controllers" {
+    class AuthorController {
+        +getAllAuthors() : ResponseEntity<List<AuthorDTO>>
+        +getAuthorById(Long) : ResponseEntity<?>
+        +createAuthor(AuthorDTO) : ResponseEntity<AuthorDTO>
+        +updateAuthor(Long, AuthorDTO) : ResponseEntity<AuthorDTO>
+        +deleteAuthor(Long) : ResponseEntity<Void>
+        +login(AuthorDTO) : ResponseEntity<AuthorDTO>
+        +updateAuthorAvatar(Long, MultipartFile) : ResponseEntity<AuthorDTO>
+    }
+}
+
+package "Services" {
+    interface AuthorService {
+        +findAll() : List<AuthorDTO>
+        +findById(Long) : Optional<AuthorDTO>
+        +update(Long, AuthorDTO) : AuthorDTO
+        +updateAvatar(Long, MultipartFile) : AuthorDTO
+        +findByEmail(String) : Optional<AuthorDTO>
+        +save(AuthorDTO) : AuthorDTO
+        +login(AuthorDTO) : Optional<AuthorDTO>
+        +deleteById(Long) : void
+    }
+
+    class AuthorServiceImpl {
+        -AuthorRepository authorRepository
+        -AuthorMapper authorMapper
+        -PasswordEncoder passwordEncoder
+        -JwtUtil jwtUtil
+        -FileStorageService fileStorageService
+    }
+}
+
+package "Repositories" {
+    interface AuthorRepository {
+        +findByEmail(String) : Optional<Author>
+        +findById(Long) : Optional<Author>
+        +deleteById(Long) : void
+    }
+}
+
+package "External Systems" {
+    interface FileStorageService {
+        +uploadFile(MultipartFile) : String
+        +deleteFile(String) : void
+    }
+}
+
+together {
+    AuthorController --> AuthorService : uses
+    AuthorServiceImpl --> AuthorRepository : uses
+    AuthorServiceImpl --> AuthorMapper : uses
+    AuthorServiceImpl --> PasswordEncoder : uses
+    AuthorServiceImpl --> JwtUtil : uses
+    AuthorServiceImpl --> FileStorageService : uses
+}
+
+@enduml
