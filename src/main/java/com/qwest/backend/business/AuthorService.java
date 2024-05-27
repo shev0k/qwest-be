@@ -1,6 +1,7 @@
 package com.qwest.backend.business;
 
 import com.qwest.backend.dto.AuthorDTO;
+import com.qwest.backend.dto.StayListingDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -21,4 +22,10 @@ public interface AuthorService {
     Optional<AuthorDTO> login(AuthorDTO authorDTO);
 
     void deleteById(Long id);
+
+    AuthorDTO addStayToWishlist(Long authorId, Long stayId);
+    AuthorDTO removeStayFromWishlist(Long authorId, Long stayId);
+
+    List<StayListingDTO> getWishlistedStays(Long authorId);
+    List<StayListingDTO> getStayListingsByAuthorId(Long authorId);
 }

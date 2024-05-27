@@ -13,7 +13,9 @@ import com.qwest.backend.business.StayListingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -26,7 +28,6 @@ public class StayListingServiceImpl implements StayListingService {
     private final AuthorRepository authorRepository;
     private final AmenityRepository amenityRepository;
     private final StayListingMapper stayListingMapper;
-
 
     @Autowired
     public StayListingServiceImpl(StayListingRepository stayListingRepository,
@@ -100,5 +101,15 @@ public class StayListingServiceImpl implements StayListingService {
     @Override
     public void deleteById(Long id) {
         stayListingRepository.deleteById(id);
+    }
+
+    @Override
+    public List<StayListingDTO> findByFilters(String location, LocalDate startDate, LocalDate endDate, Integer guests,
+                                              List<String> typeOfStay, Double priceMin, Double priceMax, Integer bedrooms,
+                                              Integer beds, Integer bathrooms, List<String> propertyType, Pageable pageable) {
+        return stayListingRepository.findByFilters(location, startDate, endDate, guests, typeOfStay, priceMin, priceMax,
+                        bedrooms, beds, bathrooms, propertyType, pageable)
+                .map(stayListingMapper::toDto)
+                .getContent();
     }
 }

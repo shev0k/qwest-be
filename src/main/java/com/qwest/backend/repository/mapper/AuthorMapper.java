@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 public interface AuthorMapper {
 
     @Mapping(target = "stayListingIds", ignore = true)
+    @Mapping(target = "wishlistIds", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "confirmPassword", ignore = true)
     @Mapping(target = "jwt", ignore = true)
@@ -25,9 +26,16 @@ public interface AuthorMapper {
                 .map(StayListing::getId)
                 .collect(Collectors.toSet());
         dto.setStayListingIds(stayListingIds);
+
+        Set<Long> wishlistIds = author.getWishlist()
+                .stream()
+                .map(StayListing::getId)
+                .collect(Collectors.toSet());
+        dto.setWishlistIds(wishlistIds);
     }
 
     @Mapping(target = "stayListings", ignore = true)
+    @Mapping(target = "wishlist", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
     Author toEntity(AuthorDTO authorDTO);
 

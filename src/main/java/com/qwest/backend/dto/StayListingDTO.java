@@ -66,4 +66,6 @@ public class StayListingDTO {
     private Set<String> amenityNames;
 
     private List<LocalDate> availableDates;
+
+    private Set<Long> likedByAuthorIds;
 }

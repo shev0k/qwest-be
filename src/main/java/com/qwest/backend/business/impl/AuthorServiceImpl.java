@@ -2,12 +2,16 @@ package com.qwest.backend.business.impl;
 
 import com.qwest.backend.configuration.security.token.JwtUtil;
 import com.qwest.backend.domain.Author;
+import com.qwest.backend.domain.StayListing;
 import com.qwest.backend.dto.AuthorDTO;
 import com.qwest.backend.domain.util.AuthorRole;
+import com.qwest.backend.dto.StayListingDTO;
 import com.qwest.backend.repository.mapper.AuthorMapper;
 import com.qwest.backend.repository.AuthorRepository;
+import com.qwest.backend.repository.StayListingRepository;
 import com.qwest.backend.business.AuthorService;
 import com.qwest.backend.business.FileStorageService;
+import com.qwest.backend.repository.mapper.StayListingMapper;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,15 +29,18 @@ public class AuthorServiceImpl implements AuthorService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final FileStorageService fileStorageService;
+    private final StayListingRepository stayListingRepository;
+    private final StayListingMapper stayListingMapper;
 
-    public AuthorServiceImpl(AuthorRepository authorRepository, AuthorMapper authorMapper,
-                             PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
-                             FileStorageService fileStorageService) {
+    public AuthorServiceImpl(AuthorRepository authorRepository, AuthorMapper authorMapper, StayListingMapper stayListingMapper,
+                             PasswordEncoder passwordEncoder, JwtUtil jwtUtil, FileStorageService fileStorageService, StayListingRepository stayListingRepository) {
         this.authorRepository = authorRepository;
         this.authorMapper = authorMapper;
+        this.stayListingMapper = stayListingMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.fileStorageService = fileStorageService;
+        this.stayListingRepository = stayListingRepository;
     }
 
     @Override
@@ -142,5 +149,49 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public void deleteById(Long id) {
         authorRepository.deleteById(id);
+    }
+
+    @Override
+    public AuthorDTO addStayToWishlist(Long authorId, Long stayId) {
+        Author author = authorRepository.findById(authorId)
+                .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MSG + authorId));
+        StayListing stay = stayListingRepository.findById(stayId)
+                .orElseThrow(() -> new EntityNotFoundException("Stay not found with id " + stayId));
+
+        author.getWishlist().add(stay);
+        author = authorRepository.save(author);
+
+        return authorMapper.toDto(author);
+    }
+
+    @Override
+    public AuthorDTO removeStayFromWishlist(Long authorId, Long stayId) {
+        Author author = authorRepository.findById(authorId)
+                .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MSG + authorId));
+        StayListing stay = stayListingRepository.findById(stayId)
+                .orElseThrow(() -> new EntityNotFoundException("Stay not found with id " + stayId));
+
+        author.getWishlist().remove(stay);
+        author = authorRepository.save(author);
+
+        return authorMapper.toDto(author);
+    }
+
+    @Override
+    public List<StayListingDTO> getWishlistedStays(Long authorId) {
+        Author author = authorRepository.findById(authorId)
+                .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MSG + authorId));
+        return author.getWishlist().stream()
+                .map(stayListingMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public List<StayListingDTO> getStayListingsByAuthorId(Long authorId) {
+        return authorRepository.findById(authorId)
+                .map(author -> author.getStayListings().stream()
+                        .map(stayListingMapper::toDto)
+                        .toList())
+                .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MSG + authorId));
     }
 }

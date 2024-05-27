@@ -2,6 +2,7 @@ package com.qwest.backend.controller;
 
 import com.qwest.backend.dto.AuthorDTO;
 import com.qwest.backend.business.AuthorService;
+import com.qwest.backend.dto.StayListingDTO;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -92,5 +93,33 @@ public class AuthorController {
         return authorService.login(authorDTO)
                 .map(dto -> ResponseEntity.ok().header("Authorization", "Bearer " + dto.getJwt()).body(dto))
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    @PostMapping("/{authorId}/wishlist/{stayId}")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    public ResponseEntity<AuthorDTO> addStayToWishlist(@PathVariable Long authorId, @PathVariable Long stayId) {
+        AuthorDTO updatedAuthor = authorService.addStayToWishlist(authorId, stayId);
+        return ResponseEntity.ok(updatedAuthor);
+    }
+
+    @DeleteMapping("/{authorId}/wishlist/{stayId}")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    public ResponseEntity<AuthorDTO> removeStayFromWishlist(@PathVariable Long authorId, @PathVariable Long stayId) {
+        AuthorDTO updatedAuthor = authorService.removeStayFromWishlist(authorId, stayId);
+        return ResponseEntity.ok(updatedAuthor);
+    }
+
+    @GetMapping("/{authorId}/wishlist")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    public ResponseEntity<List<StayListingDTO>> getWishlistedStays(@PathVariable Long authorId) {
+        List<StayListingDTO> wishlistedStays = authorService.getWishlistedStays(authorId);
+        return ResponseEntity.ok(wishlistedStays);
+    }
+
+    @GetMapping("/{authorId}/stay-listings")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    public ResponseEntity<List<StayListingDTO>> getStayListingsByAuthorId(@PathVariable Long authorId) {
+        List<StayListingDTO> stayListings = authorService.getStayListingsByAuthorId(authorId);
+        return ResponseEntity.ok(stayListings);
     }
 }
