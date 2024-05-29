@@ -1,5 +1,6 @@
 package com.qwest.backend.controller;
 
+import com.qwest.backend.business.NotificationService;
 import com.qwest.backend.dto.AuthorDTO;
 import com.qwest.backend.business.AuthorService;
 import com.qwest.backend.dto.StayListingDTO;
@@ -24,10 +25,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 public class AuthorController {
 
     private final AuthorService authorService;
+    private final NotificationService notificationService;
 
     @Autowired
-    public AuthorController(AuthorService authorService) {
+    public AuthorController(AuthorService authorService, NotificationService notificationService) {
         this.authorService = authorService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping
@@ -96,21 +99,21 @@ public class AuthorController {
     }
 
     @PostMapping("/{authorId}/wishlist/{stayId}")
-    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER', 'PENDING_HOST')")
     public ResponseEntity<AuthorDTO> addStayToWishlist(@PathVariable Long authorId, @PathVariable Long stayId) {
         AuthorDTO updatedAuthor = authorService.addStayToWishlist(authorId, stayId);
         return ResponseEntity.ok(updatedAuthor);
     }
 
     @DeleteMapping("/{authorId}/wishlist/{stayId}")
-    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER', 'PENDING_HOST')")
     public ResponseEntity<AuthorDTO> removeStayFromWishlist(@PathVariable Long authorId, @PathVariable Long stayId) {
         AuthorDTO updatedAuthor = authorService.removeStayFromWishlist(authorId, stayId);
         return ResponseEntity.ok(updatedAuthor);
     }
 
     @GetMapping("/{authorId}/wishlist")
-    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER', 'PENDING_HOST')")
     public ResponseEntity<List<StayListingDTO>> getWishlistedStays(@PathVariable Long authorId) {
         List<StayListingDTO> wishlistedStays = authorService.getWishlistedStays(authorId);
         return ResponseEntity.ok(wishlistedStays);
@@ -121,5 +124,36 @@ public class AuthorController {
     public ResponseEntity<List<StayListingDTO>> getStayListingsByAuthorId(@PathVariable Long authorId) {
         List<StayListingDTO> stayListings = authorService.getStayListingsByAuthorId(authorId);
         return ResponseEntity.ok(stayListings);
+    }
+
+    @PostMapping("/{id}/request-host")
+    public ResponseEntity<AuthorDTO> requestHostRole(@PathVariable Long id) {
+        AuthorDTO authorDTO = authorService.requestHostRole(id);
+        notificationService.notifyHostRequest(id);
+        return ResponseEntity.ok(authorDTO);
+    }
+
+    @PostMapping("/{id}/approve-host")
+    @PreAuthorize("hasRole('FOUNDER')")
+    public ResponseEntity<AuthorDTO> approveHostRole(@PathVariable Long id) {
+        AuthorDTO authorDTO = authorService.approveHostRole(id);
+        notificationService.notifyHostApproval(id);
+        return ResponseEntity.ok(authorDTO);
+    }
+
+    @PostMapping("/{id}/reject-host")
+    @PreAuthorize("hasRole('FOUNDER')")
+    public ResponseEntity<AuthorDTO> rejectHostRole(@PathVariable Long id) {
+        AuthorDTO authorDTO = authorService.rejectHostRole(id);
+        notificationService.notifyHostRejection(id);
+        return ResponseEntity.ok(authorDTO);
+    }
+
+    @PostMapping("/{id}/demote-traveler")
+    @PreAuthorize("hasRole('FOUNDER')")
+    public ResponseEntity<AuthorDTO> demoteToTraveler(@PathVariable Long id) {
+        AuthorDTO authorDTO = authorService.demoteToTraveler(id);
+        notificationService.notifyDemotionToTraveler(id);
+        return ResponseEntity.ok(authorDTO);
     }
 }

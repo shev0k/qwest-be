@@ -1,5 +1,6 @@
 package com.qwest.backend.controller;
 
+import com.qwest.backend.business.NotificationService;
 import com.qwest.backend.dto.StayListingDTO;
 import com.qwest.backend.business.StayListingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +25,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 public class StayListingController {
 
     private final StayListingService stayListingService;
+    private final NotificationService notificationService;
 
     @Autowired
-    public StayListingController(StayListingService stayListingService) {
+    public StayListingController(StayListingService stayListingService, NotificationService notificationService) {
         this.stayListingService = stayListingService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping

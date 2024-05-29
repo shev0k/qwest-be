@@ -194,4 +194,56 @@ public class AuthorServiceImpl implements AuthorService {
                         .toList())
                 .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MSG + authorId));
     }
+
+    @Override
+    public AuthorDTO requestHostRole(Long authorId) {
+        return authorRepository.findById(authorId)
+                .map(author -> {
+                    if (author.getRole() != AuthorRole.TRAVELER) {
+                        throw new IllegalArgumentException("Only travelers can request to become a host.");
+                    }
+                    author.setRole(AuthorRole.PENDING_HOST);
+                    return authorMapper.toDto(authorRepository.save(author));
+                })
+                .orElseThrow(() -> new EntityNotFoundException("Author not found with id " + authorId));
+    }
+
+    @Override
+    public AuthorDTO approveHostRole(Long authorId) {
+        return authorRepository.findById(authorId)
+                .map(author -> {
+                    if (author.getRole() != AuthorRole.PENDING_HOST) {
+                        throw new IllegalArgumentException("Only pending hosts can be approved.");
+                    }
+                    author.setRole(AuthorRole.HOST);
+                    return authorMapper.toDto(authorRepository.save(author));
+                })
+                .orElseThrow(() -> new EntityNotFoundException("Author not found with id " + authorId));
+    }
+
+    @Override
+    public AuthorDTO rejectHostRole(Long authorId) {
+        return authorRepository.findById(authorId)
+                .map(author -> {
+                    if (author.getRole() != AuthorRole.PENDING_HOST) {
+                        throw new IllegalArgumentException("Only pending hosts can be rejected.");
+                    }
+                    author.setRole(AuthorRole.TRAVELER);
+                    return authorMapper.toDto(authorRepository.save(author));
+                })
+                .orElseThrow(() -> new EntityNotFoundException("Author not found with id " + authorId));
+    }
+
+    @Override
+    public AuthorDTO demoteToTraveler(Long authorId) {
+        return authorRepository.findById(authorId)
+                .map(author -> {
+                    if (author.getRole() != AuthorRole.HOST) {
+                        throw new IllegalArgumentException("Only hosts can be demoted to traveler.");
+                    }
+                    author.setRole(AuthorRole.TRAVELER);
+                    return authorMapper.toDto(authorRepository.save(author));
+                })
+                .orElseThrow(() -> new EntityNotFoundException("Author not found with id " + authorId));
+    }
 }

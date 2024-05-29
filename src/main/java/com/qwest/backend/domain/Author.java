@@ -49,8 +49,4 @@ public class Author {
             joinColumns = @JoinColumn(name = "author_id"),
             inverseJoinColumns = @JoinColumn(name = "stay_listing_id"))
     private Set<StayListing> wishlist = new HashSet<>();
-
-    public boolean canAcceptAuthors() {
-        return this.role == AuthorRole.FOUNDER;
-    }
 }

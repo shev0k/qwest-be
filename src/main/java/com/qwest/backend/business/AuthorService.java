@@ -28,4 +28,12 @@ public interface AuthorService {
 
     List<StayListingDTO> getWishlistedStays(Long authorId);
     List<StayListingDTO> getStayListingsByAuthorId(Long authorId);
+
+    AuthorDTO requestHostRole(Long authorId);
+
+    AuthorDTO approveHostRole(Long authorId);
+
+    AuthorDTO rejectHostRole(Long authorId);
+
+    AuthorDTO demoteToTraveler(Long authorId);
 }
