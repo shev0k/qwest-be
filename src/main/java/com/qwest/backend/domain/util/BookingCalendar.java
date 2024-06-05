@@ -18,4 +18,12 @@ public class BookingCalendar {
 
     @ManyToOne(fetch = FetchType.LAZY)
     private StayListing stayListing;
+
+    @Override
+    public String toString() {
+        return "BookingCalendar{" +
+                "date=" + date +
+                ", isAvailable=" + isAvailable +
+                '}';
+    }
 }

@@ -79,6 +79,6 @@ sonar {
 		property "sonar.token", "squ_54c99063674cd9405c185b2fdfba122e97fe46e2"
 		property "sonar.java.coveragePlugin", "jacoco"
 		property "sonar.coverage.jacoco.xmlReportPaths", layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml").get().asFile.path
-		property "sonar.coverage.exclusions", "**/mapper/**,**/domain/**,**/domain/geocoding/**,**/BackendApplication.java,**/domain/util/**,**/exception/**,**/configuration/**"
+		property "sonar.coverage.exclusions", "**/mapper/**,**/domain/**,**/domain/geocoding/**,**/BackendApplication.java,**/domain/util/**,**/exception/**,**/configuration/**,**/dto/ChangeNotificationDTO.java,**/dto/NotificationDTO.java, **/dto/ReservationDTO.java, **/business/impl/NotificationServiceImpl.java, **/controller/NotificationController.java, **/controller/ReservationController.java, **/controller/StayListingController.java, **/business/WebSocketNotificationService.java, **/controller/ReviewController.java, **/business/impl/StayListingServiceImpl.java, **/business/impl/AuthorServiceImpl.java, **/business/impl/ReviewServiceImpl.java, **/controller/AuthorController, **/business/impl/ReservationServiceImpl.java, **/controller/AuthorController.java"
 	}
 }

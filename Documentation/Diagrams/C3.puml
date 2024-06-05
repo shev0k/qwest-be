@@ -3,33 +3,53 @@
 
 title Component Diagram for QWEST
 
-Container(frontend, "Web Application", "React", "Provides the user interface for interacting with the QWEST platform.")
+Container(frontend, "Web Application", "Next.js", "Provides the user interface for interacting with the QWEST platform.")
 
 Container_Boundary(api, "Spring Boot Backend") {
     Component(authorController, "Author Controller", "Spring MVC Rest Controller", "RESTful API endpoints for author operations.")
     Component(amenityController, "Amenity Controller", "Spring MVC Rest Controller", "RESTful API endpoints for amenity operations.")
     Component(stayListingController, "Stay Listing Controller", "Spring MVC Rest Controller", "RESTful API endpoints for stay listing operations.")
     Component(imageUploadController, "Image Upload Controller", "Spring MVC Rest Controller", "Handles image uploads and deletions.")
+    Component(notificationController, "Notification Controller", "Spring MVC Rest Controller", "RESTful API endpoints for notifications.")
+    Component(reservationController, "Reservation Controller", "Spring MVC Rest Controller", "RESTful API endpoints for reservations.")
+    Component(reviewController, "Review Controller", "Spring MVC Rest Controller", "RESTful API endpoints for reviews.")
 
     Component(authorService, "Author Service", "Spring Service", "Handles operations related to authors.")
     Component(amenityService, "Amenity Service", "Spring Service", "Handles operations related to amenities.")
     Component(stayListingService, "Stay Listing Service", "Spring Service", "Handles operations related to stay listings.")
+    Component(notificationService, "Notification Service", "Spring Service", "Handles operations related to notifications.")
+    Component(reservationService, "Reservation Service", "Spring Service", "Handles operations related to reservations.")
+    Component(reviewService, "Review Service", "Spring Service", "Handles operations related to reviews.")
     Component(fileStorageService, "File Storage Service", "Spring Service", "Manages file storage operations.")
+    Component(webSocketNotificationService, "WebSocket Notification Service", "Spring Service", "Manages real-time notifications.")
 
     ComponentDb(authorRepository, "Author Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
     ComponentDb(amenityRepository, "Amenity Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
     ComponentDb(stayListingRepository, "Stay Listing Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
+    ComponentDb(notificationRepository, "Notification Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
+    ComponentDb(reservationRepository, "Reservation Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
+    ComponentDb(reviewRepository, "Review Repository", "JPA Repository", "Provides functionality to read and write to the persistent storage.")
 
     Rel(authorController, authorService, "Uses")
     Rel(amenityController, amenityService, "Uses")
     Rel(stayListingController, stayListingService, "Uses")
     Rel(imageUploadController, fileStorageService, "Uses")
+    Rel(notificationController, notificationService, "Uses")
+    Rel(reservationController, reservationService, "Uses")
+    Rel(reviewController, reviewService, "Uses")
 
     Rel(authorService, authorRepository, "Reads from and writes to")
     Rel(amenityService, amenityRepository, "Reads from and writes to")
     Rel(stayListingService, stayListingRepository, "Reads from and writes to")
+    Rel(notificationService, notificationRepository, "Reads from and writes to")
+    Rel(reservationService, reservationRepository, "Reads from and writes to")
+    Rel(reviewService, reviewRepository, "Reads from and writes to")
     Rel(stayListingService, fileStorageService, "Uses")
     Rel(authorService, fileStorageService, "Uses")
+    Rel(notificationService, webSocketNotificationService, "Uses")
+    Rel(reservationService, stayListingService, "Uses")
+    Rel(reviewService, stayListingService, "Uses")
+    Rel(reviewService, notificationService, "Uses")
 }
 
 ContainerDb(database, "Database", "MySQL", "Stores all the platform's data.")
@@ -38,10 +58,16 @@ Rel(frontend, authorController, "Makes API calls to")
 Rel(frontend, amenityController, "Makes API calls to")
 Rel(frontend, stayListingController, "Makes API calls to")
 Rel(frontend, imageUploadController, "Makes API calls to")
+Rel(frontend, notificationController, "Makes API calls to")
+Rel(frontend, reservationController, "Makes API calls to")
+Rel(frontend, reviewController, "Makes API calls to")
 
 Rel(authorRepository, database, "Reads from and writes to")
 Rel(amenityRepository, database, "Reads from and writes to")
 Rel(stayListingRepository, database, "Reads from and writes to")
+Rel(notificationRepository, database, "Reads from and writes to")
+Rel(reservationRepository, database, "Reads from and writes to")
+Rel(reviewRepository, database, "Reads from and writes to")
 
 System_Ext(s3AmazonAPI, "Amazon S3 API", "Provides file storage services.")
 Rel(fileStorageService, s3AmazonAPI, "Uploads to/Deletes from")

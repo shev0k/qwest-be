@@ -3,6 +3,7 @@ package com.qwest.backend.controller;
 import com.qwest.backend.business.NotificationService;
 import com.qwest.backend.dto.AuthorDTO;
 import com.qwest.backend.business.AuthorService;
+import com.qwest.backend.dto.PasswordResetDTO;
 import com.qwest.backend.dto.StayListingDTO;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,7 @@ public class AuthorController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER', 'PENDING_HOST')")
     public ResponseEntity<List<AuthorDTO>> getAllAuthors() {
         return ResponseEntity.ok(authorService.findAll());
     }
@@ -52,18 +53,20 @@ public class AuthorController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER', 'PENDING_HOST')")
     public ResponseEntity<AuthorDTO> updateAuthor(@PathVariable Long id, @Valid @RequestBody AuthorDTO authorDTO) {
-        authorDTO.setId(id);
-        AuthorDTO updatedAuthor = authorService.update(id, authorDTO);
-        if (updatedAuthor == null) {
+        try {
+            authorDTO.setId(id);
+            AuthorDTO updatedAuthor = authorService.update(id, authorDTO);
+            return ResponseEntity.ok(updatedAuthor);
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(updatedAuthor);
     }
 
+
     @PutMapping(value = "/{id}/avatar", consumes = {"multipart/form-data"})
-    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER', 'PENDING_HOST')")
     public ResponseEntity<AuthorDTO> updateAuthorAvatar(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File upload request must contain a file.");
@@ -82,7 +85,7 @@ public class AuthorController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
+    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER', 'PENDING_HOST')")
     public ResponseEntity<Void> deleteAuthor(@PathVariable Long id) {
         if (authorService.findById(id).isPresent()) {
             authorService.deleteById(id);
@@ -96,6 +99,12 @@ public class AuthorController {
         return authorService.login(authorDTO)
                 .map(dto -> ResponseEntity.ok().header("Authorization", "Bearer " + dto.getJwt()).body(dto))
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody PasswordResetDTO passwordResetDTO) {
+        authorService.resetPassword(passwordResetDTO);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{authorId}/wishlist/{stayId}")
@@ -120,7 +129,6 @@ public class AuthorController {
     }
 
     @GetMapping("/{authorId}/stay-listings")
-    @PreAuthorize("hasAnyRole('FOUNDER', 'HOST', 'TRAVELER')")
     public ResponseEntity<List<StayListingDTO>> getStayListingsByAuthorId(@PathVariable Long authorId) {
         List<StayListingDTO> stayListings = authorService.getStayListingsByAuthorId(authorId);
         return ResponseEntity.ok(stayListings);

@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/authors/login").permitAll()
+                        .requestMatchers("/api/authors/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/authors").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/amenities").permitAll()
                         .requestMatchers(HttpMethod.GET, STAY_LISTINGS_PATH).permitAll()

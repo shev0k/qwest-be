@@ -1,6 +1,7 @@
 package com.qwest.backend.business;
 
 import com.qwest.backend.dto.AuthorDTO;
+import com.qwest.backend.dto.PasswordResetDTO;
 import com.qwest.backend.dto.StayListingDTO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,4 +37,5 @@ public interface AuthorService {
     AuthorDTO rejectHostRole(Long authorId);
 
     AuthorDTO demoteToTraveler(Long authorId);
+    void resetPassword(PasswordResetDTO passwordResetDTO);
 }

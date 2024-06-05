@@ -32,24 +32,24 @@ public class ReviewController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('TRAVELER', 'HOST', 'FOUNDER')")
+    @PreAuthorize("hasAnyRole('TRAVELER', 'HOST', 'FOUNDER', 'PENDING_HOST')")
     public ResponseEntity<ReviewDTO> createReview(@Valid @RequestBody ReviewDTO reviewDTO) {
         ReviewDTO savedReview = reviewService.save(reviewDTO);
         StayListingDTO stayListing = stayListingService.findById(savedReview.getStayListingId())
                 .orElseThrow(() -> new RuntimeException("Stay listing not found"));
 
-        notificationService.notifyStayReview(stayListing.getAuthorId(), savedReview.getAuthorId(), "");
+        notificationService.notifyStayReview(stayListing.getAuthorId(), savedReview.getAuthorId(), "left a review on your stay", savedReview.getStayListingId());
         return new ResponseEntity<>(savedReview, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TRAVELER', 'HOST', 'FOUNDER')")
+    @PreAuthorize("hasAnyRole('TRAVELER', 'HOST', 'FOUNDER', 'PENDING_HOST')")
     public ResponseEntity<ReviewDTO> updateReview(@PathVariable Long id, @Valid @RequestBody ReviewDTO reviewDTO) {
         return ResponseEntity.ok(reviewService.update(id, reviewDTO));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TRAVELER', 'HOST', 'FOUNDER')")
+    @PreAuthorize("hasAnyRole('TRAVELER', 'HOST', 'FOUNDER', 'PENDING_HOST')")
     public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
         reviewService.delete(id);
         return ResponseEntity.noContent().build();
@@ -62,6 +62,18 @@ public class ReviewController {
         return ResponseEntity.ok()
                 .header("X-Total-Count", String.valueOf(totalReviews))
                 .body(reviews);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<ReviewDTO>> getAllReviews() {
+        List<ReviewDTO> reviews = reviewService.getAllReviews();
+        return ResponseEntity.ok(reviews);
+    }
+
+    @GetMapping("/author/{authorId}")
+    public ResponseEntity<List<ReviewDTO>> getReviewsByAuthor(@PathVariable Long authorId) {
+        List<ReviewDTO> reviews = reviewService.getReviewsByAuthor(authorId);
+        return ResponseEntity.ok(reviews);
     }
 
     @GetMapping("/author-stays/{authorId}")

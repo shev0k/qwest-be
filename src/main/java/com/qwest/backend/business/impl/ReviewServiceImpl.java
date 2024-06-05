@@ -1,5 +1,6 @@
 package com.qwest.backend.business.impl;
 
+import com.qwest.backend.business.WebSocketNotificationService;
 import com.qwest.backend.domain.Author;
 import com.qwest.backend.domain.Review;
 import com.qwest.backend.domain.StayListing;
@@ -22,15 +23,26 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewMapper reviewMapper;
     private final AuthorRepository authorRepository;
     private final StayListingRepository stayListingRepository;
+    private final WebSocketNotificationService webSocketNotificationService;
 
     @Autowired
     public ReviewServiceImpl(ReviewRepository reviewRepository, ReviewMapper reviewMapper,
-                             AuthorRepository authorRepository, StayListingRepository stayListingRepository) {
+                             AuthorRepository authorRepository, StayListingRepository stayListingRepository,
+                             WebSocketNotificationService webSocketNotificationService) {
         this.reviewRepository = reviewRepository;
         this.reviewMapper = reviewMapper;
         this.authorRepository = authorRepository;
         this.stayListingRepository = stayListingRepository;
+        this.webSocketNotificationService = webSocketNotificationService;
     }
+
+    @Override
+    public List<ReviewDTO> getAllReviews() {
+        return reviewRepository.findAll().stream()
+                .map(reviewMapper::toDto)
+                .toList();
+    }
+
 
     @Override
     public ReviewDTO save(ReviewDTO reviewDTO) {
@@ -42,8 +54,14 @@ public class ReviewServiceImpl implements ReviewService {
         review.setAuthor(author);
         review.setStayListing(stayListing);
         review.setCreatedAt(LocalDate.now());
-        return reviewMapper.toDto(reviewRepository.save(review));
+
+        ReviewDTO savedReview = reviewMapper.toDto(reviewRepository.save(review));
+        
+        webSocketNotificationService.broadcastChange("NEW_REVIEW", savedReview);
+
+        return savedReview;
     }
+
 
     @Override
     public ReviewDTO update(Long id, ReviewDTO reviewDTO) {
@@ -58,12 +76,18 @@ public class ReviewServiceImpl implements ReviewService {
         review.setAuthor(author);
         review.setStayListing(stayListing);
         review.setCreatedAt(LocalDate.now());
-        return reviewMapper.toDto(reviewRepository.save(review));
+
+        ReviewDTO updatedReview = reviewMapper.toDto(reviewRepository.save(review));
+
+        webSocketNotificationService.broadcastChange("UPDATED_REVIEW", updatedReview);
+
+        return updatedReview;
     }
 
     @Override
     public void delete(Long id) {
         reviewRepository.deleteById(id);
+        webSocketNotificationService.broadcastChange("DELETED_REVIEW", id);
     }
 
     @Override

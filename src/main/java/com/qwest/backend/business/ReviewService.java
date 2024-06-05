@@ -12,4 +12,5 @@ public interface ReviewService {
     List<ReviewDTO> getReviewsByAuthor(Long authorId);
     List<ReviewDTO> getReviewsForAuthorStays(Long authorId);
     long getTotalReviews(Long stayListingId);
+    List<ReviewDTO> getAllReviews();
 }

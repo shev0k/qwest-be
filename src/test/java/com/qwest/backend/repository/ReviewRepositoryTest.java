@@ -113,7 +113,8 @@ class ReviewRepositoryTest {
         review.setComment("Excellent stay!");
         entityManager.persistAndFlush(review);
 
-        List<Review> reviews = reviewRepository.findByStayListingId(stayListing.getId(), PageRequest.of(0, 4));
+        List<Review> reviews = reviewRepository.findByStayListingId(stayListing.getId());
+
 
         assertFalse(reviews.isEmpty());
         assertEquals(1, reviews.size());

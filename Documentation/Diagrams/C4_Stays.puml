@@ -43,6 +43,7 @@ package "Domain Models" {
         -Double lng
         -Set<Amenity> amenities
         -List<BookingCalendar> bookingCalendar
+        -Set<Author> likedByAuthors
     }
 
     class GalleryImage {
@@ -58,12 +59,42 @@ package "Domain Models" {
         -StayListing stayListing
     }
 
+    class Author {
+        -Long id
+        -String email
+        -String firstName
+        -String lastName
+        -String username
+        -String avatar
+        -String country
+        -String phoneNumber
+        -String description
+        -String passwordHash
+        -AuthorRole role
+        -Set<StayListing> stayListings
+        -Set<StayListing> wishlist
+    }
+
     enum PropertyType {
         APARTMENT, HOTEL, CONDO, CABIN, TOWNHOUSE, PENTHOUSE, COTTAGE, BUNGALOW, LOFT
     }
 
     enum RentalFormType {
         ENTIRE_PLACE, PRIVATE_ROOM, HOTEL_ROOM, SHARED_ROOM
+    }
+
+    enum AuthorRole {
+        FOUNDER, HOST, TRAVELER, PENDING_HOST
+    }
+
+    class Amenity {
+        -Long id
+        -String name
+        -AmenityCategory category
+    }
+
+    enum AmenityCategory {
+        GENERAL_AMENITIES, ROOM_FEATURES, KITCHEN_DINING, BATHROOM_AMENITIES, LEISURE_RECREATION, ADDITIONAL_SERVICES, ENTERTAINMENT_OTHERS
     }
 }
 
@@ -83,6 +114,9 @@ package "Services" {
         +findById(Long) : Optional<StayListingDTO>
         +save(StayListingDTO) : StayListingDTO
         +deleteById(Long) : void
+        +findByFilters(String, LocalDate, LocalDate, Integer, List<String>, Double, Double, Integer, Integer, Integer, List<String>, Pageable) : List<StayListingDTO>
+        +updateAvailableDates(Long, List<LocalDate>) : StayListingDTO
+        +removeUnavailableDates(Long, LocalDate, LocalDate) : StayListingDTO
     }
 
     class StayListingServiceImpl {
@@ -90,6 +124,7 @@ package "Services" {
         -AuthorRepository authorRepository
         -AmenityRepository amenityRepository
         -StayListingMapper stayListingMapper
+        -WebSocketNotificationService webSocketNotificationService
     }
 }
 
@@ -98,6 +133,7 @@ package "Repositories" {
         +findAll() : List<StayListing>
         +findById(Long) : Optional<StayListing>
         +deleteById(Long) : void
+        +findByFilters(String, LocalDate, LocalDate, Integer, List<String>, Double, Double, Integer, Integer, Integer, List<String>, Pageable) : Page<StayListing>
     }
 
     interface AuthorRepository {
@@ -123,6 +159,29 @@ together {
     StayListingServiceImpl --> AuthorRepository : uses
     StayListingServiceImpl --> AmenityRepository : uses
     StayListingServiceImpl --> StayListingMapper : uses
+    StayListingServiceImpl --> WebSocketNotificationService : uses
+
+    StayListing --> Author : references
+    Author --> StayListing : owns
+    StayListing --> Amenity : contains
+    StayListing --> GalleryImage : contains
+    GalleryImage --> StayListing : references
+    BookingCalendar --> StayListing : references
+    StayListing --> BookingCalendar : contains
+    Author --> StayListing : wishlists
+    StayListing --> Author : likedByAuthors
+
+    StayListingController --> StayListing : manages
+    StayListingService --> StayListing : manages
+    StayListingRepository --> StayListing : manages
+
+    StayListingServiceImpl --> FileStorageService : uses
+    StayListing --> PropertyType : categorized as
+    StayListing --> RentalFormType : categorized as
+
+    AuthorRole --> Author : categorized as
+    AmenityCategory --> Amenity : categorized as
+
 }
 
 @enduml

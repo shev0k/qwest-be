@@ -5,7 +5,6 @@ import com.qwest.backend.domain.Amenity;
 import com.qwest.backend.domain.Author;
 import com.qwest.backend.domain.StayListing;
 import com.qwest.backend.domain.util.BookingCalendar;
-import com.qwest.backend.domain.util.GalleryImage;
 import com.qwest.backend.dto.StayListingDTO;
 import com.qwest.backend.repository.AmenityRepository;
 import com.qwest.backend.repository.AuthorRepository;
@@ -17,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -40,6 +41,9 @@ class StayListingServiceTest {
     @Mock
     private AmenityRepository amenityRepository;
 
+    @Mock
+    private WebSocketNotificationService webSocketNotificationService;
+
     @InjectMocks
     private StayListingServiceImpl stayListingService;
 
@@ -56,6 +60,7 @@ class StayListingServiceTest {
         stayListingDTO.setId(1L);
         stayListingDTO.setTitle("Test Stay");
         stayListingDTO.setAmenityIds(new HashSet<>(List.of(1L)));
+        stayListingDTO.setAuthorId(1L);
     }
 
     @Test
@@ -111,6 +116,7 @@ class StayListingServiceTest {
         verify(amenityRepository).findAllById(stayListingDTO.getAmenityIds());
         verify(stayListingRepository).save(any(StayListing.class));
         verify(stayListingMapper).toDto(any(StayListing.class));
+        verify(webSocketNotificationService).broadcastChange(eq("NEW_STAY_LISTING"), any(StayListingDTO.class));
     }
 
     @Test
@@ -133,6 +139,7 @@ class StayListingServiceTest {
         assertEquals(stayListingDTO.getTitle(), saved.getTitle());
         verify(amenityRepository, never()).findAllById(any());
         verify(stayListingRepository).save(stayListing);
+        verify(webSocketNotificationService).broadcastChange(eq("NEW_STAY_LISTING"), any(StayListingDTO.class));
     }
 
     @Test
@@ -155,6 +162,7 @@ class StayListingServiceTest {
         assertEquals(stayListingDTO.getTitle(), saved.getTitle());
         verify(amenityRepository, never()).findAllById(any());
         verify(stayListingRepository).save(stayListing);
+        verify(webSocketNotificationService).broadcastChange(eq("NEW_STAY_LISTING"), any(StayListingDTO.class));
     }
 
     @Test
@@ -172,6 +180,7 @@ class StayListingServiceTest {
         assertEquals(stayListingDTO.getTitle(), saved.getTitle());
         assertNull(saved.getGalleryImageUrls());
         verify(stayListingRepository).save(stayListing);
+        verify(webSocketNotificationService).broadcastChange(eq("NEW_STAY_LISTING"), any(StayListingDTO.class));
     }
 
     @Test
@@ -189,6 +198,7 @@ class StayListingServiceTest {
         assertEquals(stayListingDTO.getTitle(), saved.getTitle());
         assertNull(saved.getAvailableDates());
         verify(stayListingRepository).save(stayListing);
+        verify(webSocketNotificationService).broadcastChange(eq("NEW_STAY_LISTING"), any(StayListingDTO.class));
     }
 
     @Test
@@ -198,5 +208,56 @@ class StayListingServiceTest {
         stayListingService.deleteById(1L);
 
         verify(stayListingRepository, times(1)).deleteById(1L);
+        verify(webSocketNotificationService).broadcastChange(eq("DELETED_STAY_LISTING"), eq(1L));
+    }
+
+    @Test
+    void updateAvailableDatesTest() {
+        Long stayListingId = 1L;
+        List<LocalDate> newDates = Arrays.asList(LocalDate.now().plusDays(1), LocalDate.now().plusDays(2));
+
+        when(stayListingRepository.findById(stayListingId)).thenReturn(Optional.of(stayListing));
+        when(stayListingRepository.save(any(StayListing.class))).thenReturn(stayListing);
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        StayListingDTO result = stayListingService.updateAvailableDates(stayListingId, newDates);
+
+        assertNotNull(result);
+        assertEquals(stayListingDTO.getTitle(), result.getTitle());
+        verify(stayListingRepository).findById(stayListingId);
+        verify(stayListingRepository).save(any(StayListing.class));
+    }
+
+    @Test
+    void removeUnavailableDatesTest() {
+        Long stayListingId = 1L;
+        LocalDate checkInDate = LocalDate.now().plusDays(1);
+        LocalDate checkOutDate = LocalDate.now().plusDays(3);
+
+        when(stayListingRepository.findById(stayListingId)).thenReturn(Optional.of(stayListing));
+        when(stayListingRepository.save(any(StayListing.class))).thenReturn(stayListing);
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        StayListingDTO result = stayListingService.removeUnavailableDates(stayListingId, checkInDate, checkOutDate);
+
+        assertNotNull(result);
+        assertEquals(stayListingDTO.getTitle(), result.getTitle());
+        verify(stayListingRepository).findById(stayListingId);
+        verify(stayListingRepository).save(any(StayListing.class));
+    }
+
+    @Test
+    void findByFiltersTest() {
+        List<StayListing> stayListings = Arrays.asList(stayListing);
+        when(stayListingRepository.findByFilters(anyString(), any(), any(), any(), anyList(), anyDouble(), anyDouble(),
+                anyInt(), anyInt(), anyInt(), anyList(), any())).thenReturn(new PageImpl<>(stayListings));
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        var results = stayListingService.findByFilters("location", LocalDate.now(), LocalDate.now().plusDays(1), 2,
+                Collections.singletonList("type"), 100.0, 200.0, 2, 2, 1, Collections.singletonList("property"), Pageable.unpaged());
+
+        assertFalse(results.isEmpty());
+        assertEquals(1, results.size());
+        assertEquals(stayListingDTO.getTitle(), results.get(0).getTitle());
     }
 }

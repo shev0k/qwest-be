@@ -15,4 +15,7 @@ public interface StayListingService {
     List<StayListingDTO> findByFilters(String location, LocalDate startDate, LocalDate endDate, Integer guests,
                                        List<String> typeOfStay, Double priceMin, Double priceMax, Integer bedrooms,
                                        Integer beds, Integer bathrooms, List<String> propertyType, Pageable pageable);
+    StayListingDTO updateAvailableDates(Long stayListingId, List<LocalDate> dates);
+    StayListingDTO removeUnavailableDates(Long stayListingId, LocalDate checkInDate, LocalDate checkOutDate);
+
 }
