@@ -3,9 +3,10 @@ package com.qwest.backend.domain;
 import com.qwest.backend.domain.util.*;
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -61,6 +62,8 @@ public class StayListing {
     private List<String> specialRestrictions;
 
     // Accommodation Description
+    @Lob
+    @Column(name = "accommodation_description", columnDefinition = "TEXT")
     private String accommodationDescription;
 
     // Property Rates
@@ -84,5 +87,8 @@ public class StayListing {
     private Set<Amenity> amenities;
 
     @OneToMany(mappedBy = "stayListing", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BookingCalendar> bookingCalendar;
+    private List<BookingCalendar> bookingCalendar = new ArrayList<>();
+
+    @ManyToMany(mappedBy = "wishlist")
+    private Set<Author> likedByAuthors = new HashSet<>();
 }

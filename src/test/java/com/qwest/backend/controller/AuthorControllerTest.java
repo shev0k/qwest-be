@@ -1,9 +1,12 @@
 package com.qwest.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qwest.backend.business.NotificationService;
 import com.qwest.backend.configuration.security.SecurityConfig;
 import com.qwest.backend.configuration.security.token.JwtUtil;
 import com.qwest.backend.dto.AuthorDTO;
+import com.qwest.backend.dto.PasswordResetDTO;
+import com.qwest.backend.dto.StayListingDTO;
 import com.qwest.backend.business.AuthorService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -38,11 +41,14 @@ class AuthorControllerTest {
     @MockBean
     private AuthorService authorService;
 
+    @MockBean
+    private NotificationService notificationService;
+
     @Autowired
     private ObjectMapper objectMapper;
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void getAllAuthorsTest() throws Exception {
         AuthorDTO author1 = new AuthorDTO();
         author1.setId(1L);
@@ -61,7 +67,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void getAuthorByIdTest() throws Exception {
         AuthorDTO author = new AuthorDTO();
         author.setId(1L);
@@ -77,7 +83,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void createAuthorTest() throws Exception {
         AuthorDTO newAuthor = new AuthorDTO();
         newAuthor.setFirstName("Jane");
@@ -103,7 +109,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void updateAuthorTest() throws Exception {
         Long authorId = 1L;
         AuthorDTO updatedAuthor = new AuthorDTO();
@@ -125,7 +131,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void updateAuthor_NotFound() throws Exception {
         Long authorId = 1L;
         AuthorDTO updatedAuthor = new AuthorDTO();
@@ -134,7 +140,7 @@ class AuthorControllerTest {
         updatedAuthor.setLastName("Doe");
         updatedAuthor.setEmail("updated.john.doe@example.com");
 
-        when(authorService.update(eq(authorId), any(AuthorDTO.class))).thenReturn(null);
+        when(authorService.update(eq(authorId), any(AuthorDTO.class))).thenThrow(new EntityNotFoundException("Author not found"));
 
         mockMvc.perform(put("/api/authors/{id}", authorId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -142,8 +148,9 @@ class AuthorControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void updateAuthorAvatarTest() throws Exception {
         Long authorId = 1L;
         MockMultipartFile file = new MockMultipartFile(
@@ -174,7 +181,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void updateAuthorAvatar_EmptyFile() throws Exception {
         Long authorId = 1L;
         MockMultipartFile emptyFile = new MockMultipartFile(
@@ -195,7 +202,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void updateAuthorAvatar_IllegalArgumentException() throws Exception {
         Long authorId = 1L;
         MockMultipartFile file = new MockMultipartFile(
@@ -217,7 +224,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void updateAuthorAvatar_EntityNotFoundException() throws Exception {
         Long authorId = 1L;
         MockMultipartFile file = new MockMultipartFile(
@@ -238,7 +245,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void updateAuthorAvatar_GenericException() throws Exception {
         Long authorId = 1L;
         MockMultipartFile file = new MockMultipartFile(
@@ -259,7 +266,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void deleteAuthorTest() throws Exception {
         Long authorId = 1L;
 
@@ -272,7 +279,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void deleteAuthor_NotFound() throws Exception {
         Long nonExistentAuthorId = 99L;
 
@@ -283,7 +290,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void login_Successful_ReturnsJwt() throws Exception {
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setEmail("user@example.com");
@@ -302,7 +309,7 @@ class AuthorControllerTest {
     }
 
     @Test
-    @WithMockUser(username="admin", roles={"FOUNDER"})
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
     void login_Unsuccessful_ReturnsUnauthorized() throws Exception {
         when(authorService.login(any(AuthorDTO.class))).thenReturn(Optional.empty());
 
@@ -310,5 +317,161 @@ class AuthorControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"user@example.com\",\"password\":\"wrongpassword\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
+    void addStayToWishlistTest() throws Exception {
+        Long authorId = 1L;
+        Long stayId = 1L;
+
+        AuthorDTO updatedAuthor = new AuthorDTO();
+        updatedAuthor.setId(authorId);
+        updatedAuthor.setFirstName("John");
+        updatedAuthor.setLastName("Doe");
+
+        when(authorService.addStayToWishlist(authorId, stayId)).thenReturn(updatedAuthor);
+
+        mockMvc.perform(post("/api/authors/{authorId}/wishlist/{stayId}", authorId, stayId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.firstName", is("John")))
+                .andExpect(jsonPath("$.lastName", is("Doe")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
+    void removeStayFromWishlistTest() throws Exception {
+        Long authorId = 1L;
+        Long stayId = 1L;
+
+        AuthorDTO updatedAuthor = new AuthorDTO();
+        updatedAuthor.setId(authorId);
+        updatedAuthor.setFirstName("John");
+        updatedAuthor.setLastName("Doe");
+
+        when(authorService.removeStayFromWishlist(authorId, stayId)).thenReturn(updatedAuthor);
+
+        mockMvc.perform(delete("/api/authors/{authorId}/wishlist/{stayId}", authorId, stayId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.firstName", is("John")))
+                .andExpect(jsonPath("$.lastName", is("Doe")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
+    void getWishlistedStaysTest() throws Exception {
+        Long authorId = 1L;
+        StayListingDTO stayListing = new StayListingDTO();
+        stayListing.setId(1L);
+        stayListing.setTitle("Test Stay");
+
+        when(authorService.getWishlistedStays(authorId)).thenReturn(List.of(stayListing));
+
+        mockMvc.perform(get("/api/authors/{authorId}/wishlist", authorId))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(1)))
+                .andExpect(jsonPath("$[0].title", is("Test Stay")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
+    void getStayListingsByAuthorIdTest() throws Exception {
+        Long authorId = 1L;
+        StayListingDTO stayListing = new StayListingDTO();
+        stayListing.setId(1L);
+        stayListing.setTitle("Test Stay");
+
+        when(authorService.getStayListingsByAuthorId(authorId)).thenReturn(List.of(stayListing));
+
+        mockMvc.perform(get("/api/authors/{authorId}/stay-listings", authorId))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(1)))
+                .andExpect(jsonPath("$[0].title", is("Test Stay")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
+    void requestHostRoleTest() throws Exception {
+        Long authorId = 1L;
+        AuthorDTO updatedAuthor = new AuthorDTO();
+        updatedAuthor.setId(authorId);
+        updatedAuthor.setFirstName("John");
+        updatedAuthor.setLastName("Doe");
+
+        when(authorService.requestHostRole(authorId)).thenReturn(updatedAuthor);
+
+        mockMvc.perform(post("/api/authors/{id}/request-host", authorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.firstName", is("John")))
+                .andExpect(jsonPath("$.lastName", is("Doe")));
+
+        verify(authorService).requestHostRole(authorId);
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
+    void approveHostRoleTest() throws Exception {
+        Long authorId = 1L;
+        AuthorDTO updatedAuthor = new AuthorDTO();
+        updatedAuthor.setId(authorId);
+        updatedAuthor.setFirstName("John");
+        updatedAuthor.setLastName("Doe");
+
+        when(authorService.approveHostRole(authorId)).thenReturn(updatedAuthor);
+
+        mockMvc.perform(post("/api/authors/{id}/approve-host", authorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.firstName", is("John")))
+                .andExpect(jsonPath("$.lastName", is("Doe")));
+
+        verify(authorService).approveHostRole(authorId);
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
+    void rejectHostRoleTest() throws Exception {
+        Long authorId = 1L;
+        AuthorDTO updatedAuthor = new AuthorDTO();
+        updatedAuthor.setId(authorId);
+        updatedAuthor.setFirstName("John");
+        updatedAuthor.setLastName("Doe");
+
+        when(authorService.rejectHostRole(authorId)).thenReturn(updatedAuthor);
+
+        mockMvc.perform(post("/api/authors/{id}/reject-host", authorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.firstName", is("John")))
+                .andExpect(jsonPath("$.lastName", is("Doe")));
+
+        verify(authorService).rejectHostRole(authorId);
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"FOUNDER"})
+    void demoteToTravelerTest() throws Exception {
+        Long authorId = 1L;
+        AuthorDTO updatedAuthor = new AuthorDTO();
+        updatedAuthor.setId(authorId);
+        updatedAuthor.setFirstName("John");
+        updatedAuthor.setLastName("Doe");
+
+        when(authorService.demoteToTraveler(authorId)).thenReturn(updatedAuthor);
+
+        mockMvc.perform(post("/api/authors/{id}/demote-traveler", authorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.firstName", is("John")))
+                .andExpect(jsonPath("$.lastName", is("Doe")));
+
+        verify(authorService).demoteToTraveler(authorId);
     }
 }

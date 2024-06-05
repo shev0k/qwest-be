@@ -1,5 +1,6 @@
 package com.qwest.backend.repository.mapper;
 
+import com.qwest.backend.domain.Author;
 import com.qwest.backend.dto.StayListingDTO;
 import com.qwest.backend.domain.StayListing;
 import com.qwest.backend.domain.Amenity;
@@ -22,12 +23,14 @@ public interface StayListingMapper {
     @Mapping(target = "amenityNames", source = "amenities", qualifiedByName = "amenitiesToNames")
     @Mapping(target = "galleryImageUrls", source = "galleryImages", qualifiedByName = "galleryImagesToUrls")
     @Mapping(target = "availableDates", source = "bookingCalendar", qualifiedByName = "bookingCalendarToAvailableDates")
+    @Mapping(target = "likedByAuthorIds", source = "likedByAuthors", qualifiedByName = "authorsToIds")
     StayListingDTO toDto(StayListing stayListing);
 
     @Mapping(target = "author", ignore = true)
     @Mapping(target = "amenities", ignore = true)
     @Mapping(target = "galleryImages", ignore = true)
     @Mapping(target = "bookingCalendar", ignore = true)
+    @Mapping(target = "likedByAuthors", ignore = true)
     StayListing toEntity(StayListingDTO dto);
 
     @Named("amenitiesToIds")
@@ -56,6 +59,13 @@ public interface StayListingMapper {
     static Set<String> amenitiesToNames(Set<Amenity> amenities) {
         return amenities != null ? amenities.stream()
                 .map(Amenity::getName)
+                .collect(Collectors.toSet()) : null;
+    }
+
+    @Named("authorsToIds")
+    static Set<Long> authorsToIds(Set<Author> authors) {
+        return authors != null ? authors.stream()
+                .map(Author::getId)
                 .collect(Collectors.toSet()) : null;
     }
 }

@@ -5,10 +5,16 @@ import com.qwest.backend.configuration.exceptionhandler.FileNotFoundException;
 import com.qwest.backend.configuration.exceptionhandler.FileStorageException;
 import com.qwest.backend.configuration.security.token.JwtUtil;
 import com.qwest.backend.domain.Author;
+import com.qwest.backend.domain.StayListing;
 import com.qwest.backend.domain.util.AuthorRole;
 import com.qwest.backend.dto.AuthorDTO;
+import com.qwest.backend.dto.PasswordResetDTO;
+import com.qwest.backend.dto.StayListingDTO;
 import com.qwest.backend.repository.AuthorRepository;
+import com.qwest.backend.repository.StayListingRepository;
 import com.qwest.backend.repository.mapper.AuthorMapper;
+import com.qwest.backend.repository.mapper.StayListingMapper;
+import com.qwest.backend.business.WebSocketNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,12 +22,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,6 +55,15 @@ class AuthorServiceTest {
 
     @Mock
     private FileStorageService fileStorageService;
+
+    @Mock
+    private StayListingRepository stayListingRepository;
+
+    @Mock
+    private StayListingMapper stayListingMapper;
+
+    @Mock
+    private WebSocketNotificationService webSocketNotificationService;
 
     @InjectMocks
     private AuthorServiceImpl authorService;
@@ -72,6 +90,10 @@ class AuthorServiceTest {
         lenient().when(jwtUtil.generateToken(anyString())).thenReturn("mock-jwt-token");
         lenient().when(passwordEncoder.encode("newPassword")).thenReturn("newHashedPassword");
         lenient().when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(false);
+
+        SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
+        Authentication auth = new UsernamePasswordAuthenticationToken("john.doe@example.com", "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_TRAVELER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @Test
@@ -116,16 +138,29 @@ class AuthorServiceTest {
         verify(passwordEncoder).encode("password");
         verify(authorRepository).save(any(Author.class));
         verify(jwtUtil).generateToken(authorDTO.getEmail());
+        verify(webSocketNotificationService).broadcastChange(eq("NEW_AUTHOR"), any(AuthorDTO.class));
     }
 
     @Test
+    @WithMockUser(username = "john.doe@example.com", roles = {"FOUNDER"})
     void deleteByIdTest() {
-        doNothing().when(authorRepository).deleteById(1L);
+        Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
 
-        authorService.deleteById(1L);
+        Author currentUser = new Author();
+        currentUser.setId(authorId);
+        currentUser.setEmail(currentUsername);
+        currentUser.setRole(AuthorRole.FOUNDER);
 
-        verify(authorRepository, times(1)).deleteById(1L);
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(currentUser));
+        doNothing().when(authorRepository).deleteById(authorId);
+
+        authorService.deleteById(authorId);
+
+        verify(authorRepository, times(1)).deleteById(authorId);
+        verify(webSocketNotificationService).broadcastChange(eq("DELETED_AUTHOR"), eq(authorId));
     }
+
 
     @Test
     void createNewAuthorWithoutIdAssignsTravelerRole() {
@@ -149,6 +184,7 @@ class AuthorServiceTest {
         assertNotNull(result);
         verify(authorRepository).save(newAuthor);
         assertEquals(AuthorRole.TRAVELER, newAuthor.getRole());
+        verify(webSocketNotificationService).broadcastChange(eq("NEW_AUTHOR"), any(AuthorDTO.class));
     }
 
     @Test
@@ -313,6 +349,7 @@ class AuthorServiceTest {
     }
 
     @Test
+    @WithMockUser(username="john.doe@example.com", roles={"TRAVELER"})
     void updateAuthor_Success_NoEmailChange() {
         Long authorId = 1L;
         Author existingAuthor = new Author();
@@ -325,6 +362,7 @@ class AuthorServiceTest {
         authorDTO.setLastName("Doe");
 
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail("john.doe@example.com")).thenReturn(Optional.of(existingAuthor)); // Mock current user
         when(authorRepository.save(any(Author.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
 
@@ -333,21 +371,29 @@ class AuthorServiceTest {
         assertNull(result.getJwt(), "JWT should not be generated when the email hasn't changed.");
         verify(authorRepository).save(any(Author.class));
         verify(jwtUtil, never()).generateToken(anyString());
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AUTHOR"), any(AuthorDTO.class));
     }
+
 
     @Test
     void updateAuthor_Success_EmailChange() {
         Long authorId = 1L;
+        String currentUsername = "old.email@example.com";
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
-        existingAuthor.setEmail("old.email@example.com");
+        existingAuthor.setEmail(currentUsername);
 
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setEmail("new.email@example.com");
         authorDTO.setFirstName("John");
         authorDTO.setLastName("Doe");
 
+        // Set up the security context with the current user
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(existingAuthor));
         when(authorRepository.save(any(Author.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
         when(jwtUtil.generateToken("new.email@example.com")).thenReturn("newToken");
@@ -357,7 +403,9 @@ class AuthorServiceTest {
         assertThat(result.getJwt(), is("newToken"));
         verify(authorRepository).save(any(Author.class));
         verify(jwtUtil).generateToken("new.email@example.com");
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AUTHOR"), any(AuthorDTO.class));
     }
+
 
     @Test
     void updateAuthor_NotFound() {
@@ -365,12 +413,21 @@ class AuthorServiceTest {
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setEmail("does.not.exist@example.com");
 
+        // Mock current user
+        Author currentAuthor = new Author();
+        currentAuthor.setId(nonExistentAuthorId); // Set the ID to match the non-existent author ID
+        currentAuthor.setRole(AuthorRole.FOUNDER); // Set role to avoid SecurityException
+
         when(authorRepository.findById(nonExistentAuthorId)).thenReturn(Optional.empty());
+        when(authorRepository.findByEmail(anyString())).thenReturn(Optional.of(currentAuthor));
 
         assertThrows(IllegalStateException.class, () -> {
             authorService.update(nonExistentAuthorId, authorDTO);
         });
     }
+
+
+
 
     @Test
     void updateAuthor_Success_PasswordChange() {
@@ -384,7 +441,17 @@ class AuthorServiceTest {
         authorDTO.setEmail("new.email@example.com");
         authorDTO.setPassword("newPassword");
 
+        String currentUsername = "old.email@example.com";
+        Author loggedInUser = new Author();
+        loggedInUser.setId(authorId);
+        loggedInUser.setEmail(currentUsername);
+        loggedInUser.setRole(AuthorRole.TRAVELER);
+
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_TRAVELER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(loggedInUser));
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(false);
         when(passwordEncoder.encode("newPassword")).thenReturn("newHashedPassword");
@@ -395,7 +462,9 @@ class AuthorServiceTest {
         assertNotNull(result);
         verify(passwordEncoder).encode("newPassword");
         verify(authorRepository).save(existingAuthor);
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AUTHOR"), any(AuthorDTO.class));
     }
+
 
     @Test
     void updateAuthorWithPasswordChangeConditionally() {
@@ -408,7 +477,17 @@ class AuthorServiceTest {
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setPassword("newPassword");
 
+        String currentUsername = "john.doe@example.com";
+        Author loggedInUser = new Author();
+        loggedInUser.setId(authorId);
+        loggedInUser.setEmail(currentUsername);
+        loggedInUser.setRole(AuthorRole.TRAVELER);
+
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_TRAVELER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(loggedInUser));
         when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(false);
         when(passwordEncoder.encode("newPassword")).thenReturn("newHashedPassword");
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
@@ -421,6 +500,7 @@ class AuthorServiceTest {
         verify(passwordEncoder).matches("newPassword", "oldHashedPassword");
         verify(passwordEncoder).encode("newPassword");
         verify(authorRepository).save(existingAuthor);
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AUTHOR"), any(AuthorDTO.class));
     }
 
     @Test
@@ -429,7 +509,17 @@ class AuthorServiceTest {
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setPassword("");
 
+        String currentUsername = "john.doe@example.com";
+        Author loggedInUser = new Author();
+        loggedInUser.setId(authorId);
+        loggedInUser.setEmail(currentUsername);
+        loggedInUser.setRole(AuthorRole.TRAVELER);
+
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_TRAVELER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.empty());
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(loggedInUser));
 
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             authorService.update(authorId, authorDTO);
@@ -443,15 +533,21 @@ class AuthorServiceTest {
     @Test
     void updateAuthorWithoutPasswordChangeDueToMatch() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
-        existingAuthor.setEmail("john.doe@example.com");
+        existingAuthor.setEmail(currentUsername);
         existingAuthor.setPasswordHash("oldHashedPassword");
 
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setPassword("newPassword");
 
+        // Set up the security context with the current user
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(existingAuthor));
         when(passwordEncoder.matches("newPassword", "oldHashedPassword")).thenReturn(true);
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
@@ -463,20 +559,28 @@ class AuthorServiceTest {
         verify(passwordEncoder).matches("newPassword", "oldHashedPassword");
         verify(passwordEncoder, never()).encode("newPassword");
         verify(authorRepository).save(existingAuthor);
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AUTHOR"), any(AuthorDTO.class));
     }
+
 
     @Test
     void updateAuthorWithEmptyPasswordShouldNotUpdatePasswordHash() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
-        existingAuthor.setEmail("john.doe@example.com");
+        existingAuthor.setEmail(currentUsername);
         existingAuthor.setPasswordHash("existingHashedPassword");
 
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setPassword("");
 
+        // Set up the security context with the current user
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(existingAuthor));
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
 
@@ -487,9 +591,12 @@ class AuthorServiceTest {
         verify(passwordEncoder, never()).encode("");
         verify(passwordEncoder, never()).matches(anyString(), anyString());
         verify(authorRepository).save(existingAuthor);
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AUTHOR"), any(AuthorDTO.class));
     }
 
+
     @Test
+    @WithMockUser(username = "john.doe@example.com", roles = {"TRAVELER"})
     void updateAuthorWithNullPasswordShouldNotUpdatePasswordHash() {
         Long authorId = 1L;
         Author existingAuthor = new Author();
@@ -500,50 +607,85 @@ class AuthorServiceTest {
         AuthorDTO authorDTO = new AuthorDTO();
         authorDTO.setPassword(null);
 
+        // Mock the repository calls
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail("john.doe@example.com")).thenReturn(Optional.of(existingAuthor));
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(existingAuthor)).thenReturn(authorDTO);
 
+        // Call the service method
         AuthorDTO result = authorService.update(authorId, authorDTO);
 
+        // Assert the results
         assertNotNull(result);
         assertEquals("existingHashedPassword", existingAuthor.getPasswordHash());
+
+        // Verify the interactions
         verify(passwordEncoder, never()).encode(null);
         verify(passwordEncoder, never()).matches(anyString(), anyString());
         verify(authorRepository).save(existingAuthor);
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AUTHOR"), any(AuthorDTO.class));
     }
+
+
 
     @Test
     void updateAvatar_Success() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
         existingAuthor.setAvatar("oldAvatarUrl");
+        existingAuthor.setEmail(currentUsername);
 
         MockMultipartFile newAvatarFile = new MockMultipartFile("file", "newAvatar.png", "image/png", "new avatar".getBytes());
 
         String newAvatarUrl = "https://example.com/newAvatar.png";
+
+        // Set up the security context with the current user
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        // Mock repository and service calls
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(existingAuthor));
         when(fileStorageService.uploadFile(any(MultipartFile.class))).thenReturn(newAvatarUrl);
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
 
+        // Call the service method
         AuthorDTO result = authorService.updateAvatar(authorId, newAvatarFile);
 
+        // Assert the result
         assertNotNull(result);
         assertEquals(newAvatarUrl, existingAuthor.getAvatar());
+
+        // Verify the interactions
         verify(fileStorageService).deleteFile("oldAvatarUrl");
         verify(fileStorageService).uploadFile(newAvatarFile);
         verify(authorRepository).save(existingAuthor);
         verify(authorMapper).toDto(existingAuthor);
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AVATAR"), any(AuthorDTO.class));
     }
 
+
     @Test
+    @WithMockUser(username = "john.doe@example.com", roles = {"FOUNDER"})
     void updateAvatar_AuthorNotFound() {
         Long nonExistentAuthorId = 99L;
+        String currentUsername = "john.doe@example.com";
         MockMultipartFile avatarFile = new MockMultipartFile("file", "avatar.png", "image/png", "avatar".getBytes());
 
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_FOUNDER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Author currentUser = new Author();
+        currentUser.setId(1L); // Setting an ID to prevent NullPointerException
+        currentUser.setEmail(currentUsername); // Setting email to match current user
+        currentUser.setRole(AuthorRole.FOUNDER); // Set the role to avoid SecurityException
+
         when(authorRepository.findById(nonExistentAuthorId)).thenReturn(Optional.empty());
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(currentUser));
 
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             authorService.updateAvatar(nonExistentAuthorId, avatarFile);
@@ -554,12 +696,23 @@ class AuthorServiceTest {
         verify(fileStorageService, never()).uploadFile(any(MultipartFile.class));
     }
 
+
+
+
     @Test
     void updateAvatar_EmptyOrNullFile() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         MockMultipartFile emptyFile = new MockMultipartFile("file", new byte[0]);
 
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Author currentUser = new Author();
+        currentUser.setId(1L); // Setting an ID to prevent NullPointerException
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(currentUser));
 
         assertThrows(IllegalArgumentException.class, () -> {
             authorService.updateAvatar(authorId, emptyFile);
@@ -572,11 +725,19 @@ class AuthorServiceTest {
     @Test
     void updateAvatar_FileStorageException() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
         MockMultipartFile newAvatarFile = new MockMultipartFile("file", "newAvatar.png", "image/png", "new avatar".getBytes());
 
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Author currentUser = new Author();
+        currentUser.setId(1L); // Setting an ID to prevent NullPointerException
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(currentUser));
         when(fileStorageService.uploadFile(any(MultipartFile.class))).thenThrow(new FileStorageException("Failed to upload"));
 
         assertThrows(FileStorageException.class, () -> {
@@ -589,13 +750,21 @@ class AuthorServiceTest {
     @Test
     void updateAvatar_FileNotFoundException() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
         existingAuthor.setAvatar("oldAvatarUrl");
 
         MockMultipartFile newAvatarFile = new MockMultipartFile("file", "newAvatar.png", "image/png", "new avatar".getBytes());
 
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Author currentUser = new Author();
+        currentUser.setId(1L); // Setting an ID to prevent NullPointerException
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(currentUser));
         doThrow(new FileNotFoundException("File not found")).when(fileStorageService).deleteFile(anyString());
 
         Exception exception = assertThrows(FileNotFoundException.class, () -> {
@@ -611,9 +780,17 @@ class AuthorServiceTest {
     @Test
     void updateAvatar_FileIsNull() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         MultipartFile avatarFile = null;
 
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Author currentUser = new Author();
+        currentUser.setId(1L); // Setting an ID to prevent NullPointerException
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(currentUser));
 
         assertThrows(IllegalArgumentException.class, () -> {
             authorService.updateAvatar(authorId, avatarFile);
@@ -626,9 +803,17 @@ class AuthorServiceTest {
     @Test
     void updateAvatar_FileIsEmpty() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         MockMultipartFile emptyFile = new MockMultipartFile("file", new byte[0]);
 
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Author currentUser = new Author();
+        currentUser.setId(1L); // Setting an ID to prevent NullPointerException
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(currentUser));
 
         assertThrows(IllegalArgumentException.class, () -> {
             authorService.updateAvatar(authorId, emptyFile);
@@ -638,9 +823,11 @@ class AuthorServiceTest {
         verify(authorRepository, never()).save(any(Author.class));
     }
 
+
     @Test
     void updateAvatar_ExistingAvatarIsEmpty() {
         Long authorId = 1L;
+        String currentUsername = "john.doe@example.com";
         Author existingAuthor = new Author();
         existingAuthor.setId(authorId);
         existingAuthor.setAvatar("");
@@ -648,7 +835,17 @@ class AuthorServiceTest {
         MockMultipartFile newAvatarFile = new MockMultipartFile("file", "newAvatar.png", "image/png", "new avatar".getBytes());
 
         String newAvatarUrl = "https://example.com/newAvatar.png";
+
+        Authentication auth = new UsernamePasswordAuthenticationToken(currentUsername, "password", Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        Author currentUser = new Author();
+        currentUser.setId(authorId);
+        currentUser.setEmail(currentUsername);
+        currentUser.setRole(AuthorRole.TRAVELER);
+
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthor));
+        when(authorRepository.findByEmail(currentUsername)).thenReturn(Optional.of(currentUser));
         when(fileStorageService.uploadFile(any(MultipartFile.class))).thenReturn(newAvatarUrl);
         when(authorRepository.save(any(Author.class))).thenReturn(existingAuthor);
         when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
@@ -661,6 +858,249 @@ class AuthorServiceTest {
         verify(fileStorageService).uploadFile(newAvatarFile);
         verify(authorRepository).save(existingAuthor);
         verify(authorMapper).toDto(existingAuthor);
+        verify(webSocketNotificationService).broadcastChange(eq("UPDATED_AVATAR"), any(AuthorDTO.class));
     }
 
+
+
+    @Test
+    @WithMockUser(username = "john.doe@example.com", roles = {"TRAVELER"})
+    void addStayToWishlistTest() {
+        Long authorId = 1L;
+        Long stayId = 1L;
+        String currentUsername = "john.doe@example.com";
+        Author author = new Author();
+        author.setId(authorId);
+        author.setWishlist(new HashSet<>()); // Use new HashSet to create a mutable Set
+        StayListing stayListing = new StayListing();
+        stayListing.setId(stayId);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(stayListingRepository.findById(stayId)).thenReturn(Optional.of(stayListing));
+        when(authorRepository.save(any(Author.class))).thenReturn(author);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(new AuthorDTO());
+
+        AuthorDTO result = authorService.addStayToWishlist(authorId, stayId);
+
+        assertNotNull(result);
+        assertTrue(author.getWishlist().contains(stayListing));
+        verify(authorRepository).save(author);
+        verify(authorMapper).toDto(author);
+    }
+
+
+    @Test
+    @WithMockUser(username = "john.doe@example.com", roles = {"TRAVELER"})
+    void removeStayFromWishlistTest() {
+        Long authorId = 1L;
+        Long stayId = 1L;
+        String currentUsername = "john.doe@example.com";
+        Author author = new Author();
+        author.setId(authorId);
+        StayListing stayListing = new StayListing();
+        stayListing.setId(stayId);
+        author.setWishlist(new HashSet<>(Collections.singletonList(stayListing))); // Use new HashSet to create a mutable Set
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(stayListingRepository.findById(stayId)).thenReturn(Optional.of(stayListing));
+        when(authorRepository.save(any(Author.class))).thenReturn(author);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(new AuthorDTO());
+
+        AuthorDTO result = authorService.removeStayFromWishlist(authorId, stayId);
+
+        assertNotNull(result);
+        assertFalse(author.getWishlist().contains(stayListing));
+        verify(authorRepository).save(author);
+        verify(authorMapper).toDto(author);
+    }
+
+
+
+
+    @Test
+    @WithMockUser(username="john.doe@example.com", roles={"TRAVELER"})
+    void getWishlistedStaysTest() {
+        Long authorId = 1L;
+        Author author = new Author();
+        author.setId(authorId);
+        StayListing stayListing = new StayListing();
+        stayListing.setId(1L);
+        author.setWishlist(Set.of(stayListing)); // Use Set.of to create a Set
+
+        StayListingDTO stayListingDTO = new StayListingDTO();
+        stayListingDTO.setId(1L);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        List<StayListingDTO> result = authorService.getWishlistedStays(authorId);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertEquals(stayListingDTO.getId(), result.get(0).getId());
+        verify(stayListingMapper).toDto(stayListing);
+    }
+
+
+    @Test
+    @WithMockUser(username="john.doe@example.com", roles={"TRAVELER"})
+    void getStayListingsByAuthorIdTest() {
+        Long authorId = 1L;
+        Author author = new Author();
+        author.setId(authorId);
+        StayListing stayListing = new StayListing();
+        stayListing.setId(1L);
+        author.setStayListings(Set.of(stayListing)); // Use Set.of to create a Set
+
+        StayListingDTO stayListingDTO = new StayListingDTO();
+        stayListingDTO.setId(1L);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(stayListingMapper.toDto(any(StayListing.class))).thenReturn(stayListingDTO);
+
+        List<StayListingDTO> result = authorService.getStayListingsByAuthorId(authorId);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertEquals(stayListingDTO.getId(), result.get(0).getId());
+        verify(stayListingMapper).toDto(stayListing);
+    }
+
+
+    @Test
+    void requestHostRoleTest() {
+        Long authorId = 1L;
+        Author author = new Author();
+        author.setId(authorId);
+        author.setRole(AuthorRole.TRAVELER);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(authorRepository.save(any(Author.class))).thenReturn(author);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+
+        AuthorDTO result = authorService.requestHostRole(authorId);
+
+        assertNotNull(result);
+        assertEquals(AuthorRole.PENDING_HOST, author.getRole());
+        verify(authorRepository).save(author);
+        verify(authorMapper).toDto(author);
+        verify(webSocketNotificationService).broadcastChange(eq("REQUESTED_HOST_ROLE"), any(AuthorDTO.class));
+    }
+
+    @Test
+    void approveHostRoleTest() {
+        Long authorId = 1L;
+        Author author = new Author();
+        author.setId(authorId);
+        author.setRole(AuthorRole.PENDING_HOST);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(authorRepository.save(any(Author.class))).thenReturn(author);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+
+        AuthorDTO result = authorService.approveHostRole(authorId);
+
+        assertNotNull(result);
+        assertEquals(AuthorRole.HOST, author.getRole());
+        verify(authorRepository).save(author);
+        verify(authorMapper).toDto(author);
+        verify(webSocketNotificationService).broadcastChange(eq("APPROVED_HOST_ROLE"), any(AuthorDTO.class));
+    }
+
+    @Test
+    void rejectHostRoleTest() {
+        Long authorId = 1L;
+        Author author = new Author();
+        author.setId(authorId);
+        author.setRole(AuthorRole.PENDING_HOST);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(authorRepository.save(any(Author.class))).thenReturn(author);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+
+        AuthorDTO result = authorService.rejectHostRole(authorId);
+
+        assertNotNull(result);
+        assertEquals(AuthorRole.TRAVELER, author.getRole());
+        verify(authorRepository).save(author);
+        verify(authorMapper).toDto(author);
+        verify(webSocketNotificationService).broadcastChange(eq("REJECTED_HOST_ROLE"), any(AuthorDTO.class));
+    }
+
+    @Test
+    void demoteToTravelerTest() {
+        Long authorId = 1L;
+        Author author = new Author();
+        author.setId(authorId);
+        author.setRole(AuthorRole.HOST);
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(authorRepository.save(any(Author.class))).thenReturn(author);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+
+        AuthorDTO result = authorService.demoteToTraveler(authorId);
+
+        assertNotNull(result);
+        assertEquals(AuthorRole.TRAVELER, author.getRole());
+        verify(authorRepository).save(author);
+        verify(authorMapper).toDto(author);
+        verify(webSocketNotificationService).broadcastChange(eq("DEMOTED_TO_TRAVELER"), any(AuthorDTO.class));
+    }
+
+    @Test
+    void resetPassword_Success() {
+        String email = "john.doe@example.com";
+        PasswordResetDTO passwordResetDTO = new PasswordResetDTO();
+        passwordResetDTO.setEmail(email);
+        passwordResetDTO.setNewPassword("newPassword");
+        passwordResetDTO.setConfirmNewPassword("newPassword");
+
+        when(authorRepository.findByEmail(email)).thenReturn(Optional.of(author));
+        when(passwordEncoder.encode("newPassword")).thenReturn("newHashedPassword");
+        when(authorRepository.save(any(Author.class))).thenReturn(author);
+        when(authorMapper.toDto(any(Author.class))).thenReturn(authorDTO);
+
+        authorService.resetPassword(passwordResetDTO);
+
+        verify(authorRepository).findByEmail(email);
+        verify(passwordEncoder).encode("newPassword");
+        verify(authorRepository).save(author);
+        verify(webSocketNotificationService).broadcastChange(eq("PASSWORD_RESET"), any(AuthorDTO.class));
+    }
+
+    @Test
+    void resetPassword_PasswordsDoNotMatch() {
+        PasswordResetDTO passwordResetDTO = new PasswordResetDTO();
+        passwordResetDTO.setEmail("john.doe@example.com");
+        passwordResetDTO.setNewPassword("newPassword");
+        passwordResetDTO.setConfirmNewPassword("differentPassword");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authorService.resetPassword(passwordResetDTO);
+        });
+
+        assertEquals("Passwords do not match.", exception.getMessage());
+        verifyNoInteractions(authorRepository);
+        verifyNoInteractions(passwordEncoder);
+        verifyNoInteractions(webSocketNotificationService);
+    }
+
+    @Test
+    void resetPassword_InvalidEmail() {
+        PasswordResetDTO passwordResetDTO = new PasswordResetDTO();
+        passwordResetDTO.setEmail("invalid@example.com");
+        passwordResetDTO.setNewPassword("newPassword");
+        passwordResetDTO.setConfirmNewPassword("newPassword");
+
+        when(authorRepository.findByEmail(passwordResetDTO.getEmail())).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authorService.resetPassword(passwordResetDTO);
+        });
+
+        assertEquals("Invalid email address.", exception.getMessage());
+        verify(authorRepository).findByEmail(passwordResetDTO.getEmail());
+        verifyNoInteractions(passwordEncoder);
+        verifyNoInteractions(webSocketNotificationService);
+    }
 }

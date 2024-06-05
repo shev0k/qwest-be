@@ -16,6 +16,45 @@ package "Domain Models" {
     enum AmenityCategory {
         GENERAL_AMENITIES, ROOM_FEATURES, KITCHEN_DINING, BATHROOM_AMENITIES, LEISURE_RECREATION, ADDITIONAL_SERVICES, ENTERTAINMENT_OTHERS
     }
+
+    class StayListing {
+        -Long id
+        -Author author
+        -LocalDate date
+        -String title
+        -String featuredImage
+        -List<GalleryImage> galleryImages
+        -Double reviewStart
+        -Integer reviewCount
+        -String country
+        -String street
+        -String roomNumber
+        -String city
+        -String state
+        -String postalCode
+        -PropertyType propertyType
+        -RentalFormType rentalFormType
+        -Double acreage
+        -Integer maxGuests
+        -Integer bedrooms
+        -Integer beds
+        -Integer bathrooms
+        -Integer kitchens
+        -String checkInHours
+        -String checkOutHours
+        -List<String> specialRestrictions
+        -String accommodationDescription
+        -Double weekdayPrice
+        -Double weekendPrice
+        -Double longTermStayDiscount
+        -Integer minimumNights
+        -Integer maximumNights
+        -Double lat
+        -Double lng
+        -Set<Amenity> amenities
+        -List<BookingCalendar> bookingCalendar
+        -Set<Author> likedByAuthors
+    }
 }
 
 package "Controllers" {
@@ -51,6 +90,12 @@ together {
     AmenityController --> AmenityService : uses
     AmenityServiceImpl --> AmenityRepository : uses
     AmenityServiceImpl --> AmenityMapper : uses
+
+    StayListing --> Amenity : contains
+
+    AmenityController --> Amenity : manages
+    AmenityService --> Amenity : manages
+    AmenityRepository --> Amenity : manages
 }
 
 @enduml

@@ -43,7 +43,10 @@ public class Author {
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<StayListing> stayListings = new HashSet<>();
 
-    public boolean canAcceptAuthors() {
-        return this.role == AuthorRole.FOUNDER;
-    }
+    @ManyToMany
+    @JoinTable(
+            name = "author_wishlist",
+            joinColumns = @JoinColumn(name = "author_id"),
+            inverseJoinColumns = @JoinColumn(name = "stay_listing_id"))
+    private Set<StayListing> wishlist = new HashSet<>();
 }

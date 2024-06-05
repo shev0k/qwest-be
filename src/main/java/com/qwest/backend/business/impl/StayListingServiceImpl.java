@@ -1,5 +1,6 @@
 package com.qwest.backend.business.impl;
 
+import com.qwest.backend.business.WebSocketNotificationService;
 import com.qwest.backend.domain.StayListing;
 import com.qwest.backend.dto.StayListingDTO;
 import com.qwest.backend.domain.Amenity;
@@ -10,14 +11,18 @@ import com.qwest.backend.repository.AuthorRepository;
 import com.qwest.backend.repository.StayListingRepository;
 import com.qwest.backend.repository.AmenityRepository;
 import com.qwest.backend.business.StayListingService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class StayListingServiceImpl implements StayListingService {
@@ -26,17 +31,19 @@ public class StayListingServiceImpl implements StayListingService {
     private final AuthorRepository authorRepository;
     private final AmenityRepository amenityRepository;
     private final StayListingMapper stayListingMapper;
-
+    private final WebSocketNotificationService webSocketNotificationService;
 
     @Autowired
     public StayListingServiceImpl(StayListingRepository stayListingRepository,
                                   AuthorRepository authorRepository,
                                   AmenityRepository amenityRepository,
-                                  StayListingMapper stayListingMapper) {
+                                  StayListingMapper stayListingMapper,
+                                  WebSocketNotificationService webSocketNotificationService) {
         this.stayListingRepository = stayListingRepository;
         this.authorRepository = authorRepository;
         this.amenityRepository = amenityRepository;
         this.stayListingMapper = stayListingMapper;
+        this.webSocketNotificationService = webSocketNotificationService;
     }
 
     @Override
@@ -94,11 +101,83 @@ public class StayListingServiceImpl implements StayListingService {
         stayListing.setBookingCalendar(bookingCalendars);
 
         StayListing savedListing = stayListingRepository.save(stayListing);
-        return stayListingMapper.toDto(savedListing);
+        StayListingDTO savedListingDTO = stayListingMapper.toDto(savedListing);
+
+        webSocketNotificationService.broadcastChange("NEW_STAY_LISTING", savedListingDTO);
+
+        return savedListingDTO;
     }
 
     @Override
     public void deleteById(Long id) {
         stayListingRepository.deleteById(id);
+        webSocketNotificationService.broadcastChange("DELETED_STAY_LISTING", id);
     }
+
+    @Override
+    public List<StayListingDTO> findByFilters(String location, LocalDate startDate, LocalDate endDate, Integer guests,
+                                              List<String> typeOfStay, Double priceMin, Double priceMax, Integer bedrooms,
+                                              Integer beds, Integer bathrooms, List<String> propertyType, Pageable pageable) {
+        return stayListingRepository.findByFilters(location, startDate, endDate, guests, typeOfStay, priceMin, priceMax,
+                        bedrooms, beds, bathrooms, propertyType, pageable)
+                .map(stayListingMapper::toDto)
+                .getContent();
+    }
+
+    @Override
+    @Transactional
+    public StayListingDTO updateAvailableDates(Long stayListingId, List<LocalDate> dates) {
+        System.out.println("Updating available dates for StayListing id: " + stayListingId);
+        System.out.println("Input dates: " + dates);
+
+        StayListing stayListing = stayListingRepository.findById(stayListingId)
+                .orElseThrow(() -> new EntityNotFoundException("Stay listing not found with id " + stayListingId));
+
+        List<BookingCalendar> bookingCalendar = stayListing.getBookingCalendar();
+        System.out.println("Existing booking calendar: " + bookingCalendar);
+
+        for (LocalDate date : dates) {
+            boolean isDateAlreadyUnavailable = bookingCalendar.stream()
+                    .anyMatch(bc -> bc.getDate().equals(date) && bc.getIsAvailable());
+
+            if (!isDateAlreadyUnavailable) {
+                // If the date is not already present as unavailable, add it as unavailable
+                BookingCalendar booking = new BookingCalendar();
+                booking.setDate(date);
+                booking.setIsAvailable(true); // Mark the date as unavailable
+                booking.setStayListing(stayListing);
+                bookingCalendar.add(booking);
+            }
+        }
+
+        stayListing.setBookingCalendar(bookingCalendar);
+
+        StayListing updatedStayListing = stayListingRepository.save(stayListing);
+        StayListingDTO updatedStayListingDTO = stayListingMapper.toDto(updatedStayListing);
+
+        System.out.println("Updated booking calendar: " + updatedStayListing.getBookingCalendar());
+
+        return updatedStayListingDTO;
+    }
+
+    @Override
+    @Transactional
+    public StayListingDTO removeUnavailableDates(Long stayListingId, LocalDate checkInDate, LocalDate checkOutDate) {
+        StayListing stayListing = stayListingRepository.findById(stayListingId)
+                .orElseThrow(() -> new EntityNotFoundException("Stay listing not found with id " + stayListingId));
+
+        List<BookingCalendar> bookingCalendar = stayListing.getBookingCalendar();
+
+        List<LocalDate> datesToMakeAvailable = checkInDate.datesUntil(checkOutDate).toList();
+
+        bookingCalendar.removeIf(bc -> datesToMakeAvailable.contains(bc.getDate()) && bc.getIsAvailable());
+
+        stayListing.setBookingCalendar(bookingCalendar);
+
+        StayListing updatedStayListing = stayListingRepository.save(stayListing);
+        return stayListingMapper.toDto(updatedStayListing);
+    }
+
+
+
 }

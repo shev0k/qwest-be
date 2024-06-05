@@ -20,10 +20,50 @@ package "Domain Models" {
         -String passwordHash
         -AuthorRole role
         -Set<StayListing> stayListings
+        -Set<StayListing> wishlist
+    }
+
+    class StayListing {
+        -Long id
+        -Author author
+        -LocalDate date
+        -String title
+        -String featuredImage
+        -List<GalleryImage> galleryImages
+        -Double reviewStart
+        -Integer reviewCount
+        -String country
+        -String street
+        -String roomNumber
+        -String city
+        -String state
+        -String postalCode
+        -PropertyType propertyType
+        -RentalFormType rentalFormType
+        -Double acreage
+        -Integer maxGuests
+        -Integer bedrooms
+        -Integer beds
+        -Integer bathrooms
+        -Integer kitchens
+        -String checkInHours
+        -String checkOutHours
+        -List<String> specialRestrictions
+        -String accommodationDescription
+        -Double weekdayPrice
+        -Double weekendPrice
+        -Double longTermStayDiscount
+        -Integer minimumNights
+        -Integer maximumNights
+        -Double lat
+        -Double lng
+        -Set<Amenity> amenities
+        -List<BookingCalendar> bookingCalendar
+        -Set<Author> likedByAuthors
     }
 
     enum AuthorRole {
-        TRAVELER, HOST, FOUNDER
+        TRAVELER, HOST, FOUNDER, PENDING_HOST
     }
 }
 
@@ -36,6 +76,15 @@ package "Controllers" {
         +deleteAuthor(Long) : ResponseEntity<Void>
         +login(AuthorDTO) : ResponseEntity<AuthorDTO>
         +updateAuthorAvatar(Long, MultipartFile) : ResponseEntity<AuthorDTO>
+        +resetPassword(PasswordResetDTO) : ResponseEntity<Void>
+        +addStayToWishlist(Long, Long) : ResponseEntity<AuthorDTO>
+        +removeStayFromWishlist(Long, Long) : ResponseEntity<AuthorDTO>
+        +getWishlistedStays(Long) : ResponseEntity<List<StayListingDTO>>
+        +getStayListingsByAuthorId(Long) : ResponseEntity<List<StayListingDTO>>
+        +requestHostRole(Long) : ResponseEntity<AuthorDTO>
+        +approveHostRole(Long) : ResponseEntity<AuthorDTO>
+        +rejectHostRole(Long) : ResponseEntity<AuthorDTO>
+        +demoteToTraveler(Long) : ResponseEntity<AuthorDTO>
     }
 }
 
@@ -49,6 +98,15 @@ package "Services" {
         +save(AuthorDTO) : AuthorDTO
         +login(AuthorDTO) : Optional<AuthorDTO>
         +deleteById(Long) : void
+        +resetPassword(PasswordResetDTO) : void
+        +addStayToWishlist(Long, Long) : AuthorDTO
+        +removeStayFromWishlist(Long, Long) : AuthorDTO
+        +getWishlistedStays(Long) : List<StayListingDTO>
+        +getStayListingsByAuthorId(Long) : List<StayListingDTO>
+        +requestHostRole(Long) : AuthorDTO
+        +approveHostRole(Long) : AuthorDTO
+        +rejectHostRole(Long) : AuthorDTO
+        +demoteToTraveler(Long) : AuthorDTO
     }
 
     class AuthorServiceImpl {
@@ -57,6 +115,8 @@ package "Services" {
         -PasswordEncoder passwordEncoder
         -JwtUtil jwtUtil
         -FileStorageService fileStorageService
+        -NotificationService notificationService
+        -StayListingRepository stayListingRepository
     }
 }
 
@@ -66,12 +126,26 @@ package "Repositories" {
         +findById(Long) : Optional<Author>
         +deleteById(Long) : void
     }
+
+    interface StayListingRepository {
+        +findAll() : List<StayListing>
+        +findById(Long) : Optional<StayListing>
+        +deleteById(Long) : void
+        +findByAuthorId(Long) : List<StayListing>
+    }
 }
 
 package "External Systems" {
     interface FileStorageService {
         +uploadFile(MultipartFile) : String
         +deleteFile(String) : void
+    }
+
+    interface NotificationService {
+        +notifyHostRequest(Long) : void
+        +notifyHostApproval(Long) : void
+        +notifyHostRejection(Long) : void
+        +notifyDemotionToTraveler(Long) : void
     }
 }
 
@@ -82,6 +156,18 @@ together {
     AuthorServiceImpl --> PasswordEncoder : uses
     AuthorServiceImpl --> JwtUtil : uses
     AuthorServiceImpl --> FileStorageService : uses
+    AuthorServiceImpl --> NotificationService : uses
+    AuthorServiceImpl --> StayListingRepository : uses
+
+    Author --> StayListing : owns
+    StayListing --> Author : references
+
+    AuthorController --> Author : manages
+    AuthorService --> Author : manages
+    AuthorRepository --> Author : manages
+
+    AuthorService --> StayListing : manages
+    StayListingRepository --> StayListing : manages
 }
 
 @enduml

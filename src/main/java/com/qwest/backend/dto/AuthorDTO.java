@@ -33,6 +33,7 @@ public class AuthorDTO {
     private String role;
 
     private Set<Long> stayListingIds;
+    private Set<Long> wishlistIds;
 
     private String jwt;
 }
