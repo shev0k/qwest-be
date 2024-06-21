@@ -23,6 +23,8 @@ System_Boundary(qwest, "QWEST Platform") {
 
 System_Ext(travelAPIs, "Travel APIs", "Provides real-time data on accommodations, flights, etc.")
 Rel(springApp, travelAPIs, "Fetches data from")
+System_Ext(s3AmazonAPI, "Amazon S3 API", "Provides file storage services.")
+Rel(springApp, s3AmazonAPI, "Uploads to/Deletes from")
 
 SHOW_LEGEND()
 

@@ -22,6 +22,9 @@ Rel(listingCreator, qwest, "Lists accommodations on")
 Rel(qwest, travelAPIs, "Integrates with for booking")
 Rel(qwest, userFeedback, "Collects accommodation feedback")
 
+System_Ext(s3AmazonAPI, "Amazon S3 API", "Provides file storage services.")
+Rel(qwest, s3AmazonAPI, "Uploads to/Deletes from")
+
 SHOW_LEGEND()
 
 @enduml

@@ -1,0 +1,67 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+skinparam linetype ortho
+
+title Component Diagram for QWEST Frontend
+
+Container(frontend, "Web Application", "Next.js", "Provides the user interface for interacting with the QWEST platform.")
+
+Container_Boundary(frontend, "Next.js Frontend") {
+    Component(homePage, "Home Page", "React Component", "Displays the main page for users.")
+    Component(staysPage, "Stays Page", "React Component", "Allows users to explore stays.")
+    Component(addListingPage, "Add Listing Page", "React Component", "Enables users to add new listings.")
+    Component(checkoutPage, "Checkout Page", "React Component", "Handles the checkout process.")
+    Component(successfulPaymentPage, "Successful Payment Page", "React Component", "Displays payment success message.")
+    Component(authorPage, "Author Page", "React Component", "Shows author information.")
+    Component(accountPage, "Account Page", "React Component", "Manages user account settings.")
+    Component(loginPage, "Login Page", "React Component", "Handles user login.")
+    Component(signupPage, "Signup Page", "React Component", "Handles user registration.")
+    Component(contactPage, "Contact Page", "React Component", "Displays contact information.")
+    Component(aboutPage, "About Page", "React Component", "Displays information about the platform.")
+
+    Component(authService, "Authentication Service", "Auth0", "Handles user authentication.")
+    Component(apiService, "API Service", "Axios/Fetch", "Manages API calls to the backend.")
+    Component(authContext, "Auth Context", "React Context", "Provides authentication context.")
+    Component(listingFormContext, "Listing Form Context", "React Context", "Manages listing form state.")
+    Component(reservationContext, "Reservation Context", "React Context", "Manages reservation state.")
+    Component(webSocketContext, "WebSocket Context", "React Context", "Handles real-time notifications.")
+    Rel(apiService, authService, "Uses")
+    Rel(apiService, authContext, "Uses")
+
+
+    Rel(homePage, apiService, "Fetches data from")
+    Rel(staysPage, apiService, "Fetches data from")
+    Rel(addListingPage, apiService, "Fetches data from")
+    Rel(checkoutPage, apiService, "Fetches data from")
+    Rel(successfulPaymentPage, apiService, "Fetches data from")
+    Rel(authorPage, apiService, "Fetches data from")
+    Rel(accountPage, apiService, "Fetches data from")
+    Rel(loginPage, apiService, "Fetches data from")
+    Rel(signupPage, apiService, "Fetches data from")
+    Rel(contactPage, apiService, "Fetches data from")
+    Rel(aboutPage, apiService, "Fetches data from")
+
+
+
+
+
+
+    Rel(listingFormContext, addListingPage, "Provides context to")
+    Rel(reservationContext, checkoutPage, "Provides context to")
+    Rel(webSocketContext, homePage, "Provides context to")
+    Rel(webSocketContext, staysPage, "Provides context to")
+    Rel(webSocketContext, addListingPage, "Provides context to")
+    Rel(webSocketContext, checkoutPage, "Provides context to")
+    Rel(webSocketContext, successfulPaymentPage, "Provides context to")
+    Rel(webSocketContext, authorPage, "Provides context to")
+    Rel(webSocketContext, accountPage, "Provides context to")
+}
+
+ContainerDb(sessionStorage, "Session Storage", "Browser Storage", "Stores user session and settings.")
+Rel(authService, sessionStorage, "Reads from and writes to")
+
+System_Ext(springBackend, "Spring Boot Backend", "Handles business logic and data persistence.")
+Rel(apiService, springBackend, "Makes API calls to")
+
+@enduml
